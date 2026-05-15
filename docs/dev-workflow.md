@@ -231,3 +231,53 @@ VCC は `Packages/manifest.json` を編集することで VRChat SDK や UdonSha
 - VCC で SDK バージョンを上げたときは別コミットで明示: `chore(deps): VRChat SDK 3.x.x → 3.y.y`
 
 `Library/PackageCache/` は自動再生成されるため除外(`.gitignore` 済み)。
+
+## 9. Blueprint ID の保護ワークフロー
+
+VRChat の `blueprintId` (例: `wrld_13f1b8a9-...`) は個人アカウント固有のワールド識別子で、`Build & Publish` 時にシーンファイル内の VRC Scene Descriptor へ自動書き込みされる。リポジトリにコミットすると、
+
+- 他者がフォークしても同じ ID は使えない(別アカウントから上書きできない)
+- 個人が運用するワールド ID が公開リポジトリに混入する
+
+ため、シーンファイルに書き込まれた blueprintId はコミット前に退避し、コミット後に書き戻す運用とする。
+
+### 退避先
+
+- `.blueprint-id.local` (リポジトリルート配置、`.gitignore` 済み)
+- 形式: `<シーンファイルの相対パス>=<blueprintId>` (1 行 1 エントリ、`#` 始まりはコメント)
+
+### 退避・復元スクリプト
+
+| スクリプト | 役割 |
+| --- | --- |
+| `scripts/Save-BlueprintId.ps1` | シーンファイル内の `blueprintId: wrld_*` を `.blueprint-id.local` に保存し、シーンファイル内の値を空にする |
+| `scripts/Restore-BlueprintId.ps1` | `.blueprint-id.local` の値を対応するシーンファイルへ書き戻す (冪等) |
+
+### コミット前
+
+```powershell
+pwsh scripts/Save-BlueprintId.ps1
+git add -u
+git commit -m "..."
+git push
+```
+
+### コミット後 (Unity 作業を継続する場合)
+
+```powershell
+pwsh scripts/Restore-BlueprintId.ps1
+```
+
+復元後、シーンファイルは modified 状態として残る(VRChat SDK 上でアップロードを継続するため)。これは許容し、次回コミット前に再度 `Save-BlueprintId.ps1` を実行する。
+
+### 初回セットアップ (新しい開発環境)
+
+1. VCC でプロジェクトを開き、VRChat SDK Control Panel から `Build & Publish` を実行 → blueprintId が新規発行されシーンファイルへ書き込まれる
+2. `pwsh scripts/Save-BlueprintId.ps1` を実行して `.blueprint-id.local` を生成
+3. 以後は上記「コミット前 / 後」のフローで運用
+
+### 注意
+
+- `Build & Publish` の度にシーンファイルへ blueprintId が再注入される。**コミット前の `Save-BlueprintId.ps1` 実行を忘れない**
+- 複数シーンを扱う場合は `.blueprint-id.local` に複数行登録できる。`Save-BlueprintId.ps1 -SceneFile <path>` で対象を指定する
+- 自動化 (git hook 化) は VRChat SDK のビルドフローと競合するリスクがあるため、当面は手動運用とする

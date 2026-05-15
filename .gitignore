@@ -89,6 +89,9 @@ crashlytics-build.properties
 # Local VRChat SDK build cache
 .vrcignore.local
 
+# Blueprint ID local cache (scripts/Save-BlueprintId.ps1 で書き出す個人ワールドID)
+.blueprint-id.local
+
 # OS-specific --------------------------------------------------------------
 # macOS
 .DS_Store
