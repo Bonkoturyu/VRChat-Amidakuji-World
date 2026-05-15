@@ -2,20 +2,21 @@
 
 Phase別タスク。各 Phase は Build & Test (動作確認) まで含めて「完了」とする。
 
-## Phase 0: 環境構築 [5/15] [0.5日]
+## Phase 0: 環境構築 [5/15] [0.5日] ✅ 完了 (2026-05-16 確認)
 
-- [ ] VCC で新規 World プロジェクト作成 (`amidakuji-world`)
-- [ ] VRChat World SDK 3.x 最新版を導入
-- [ ] UdonSharp 最新版を導入
-- [ ] ClientSim 導入
-- [ ] **Android Build Support を Unity に追加**(Quest対応のため、後のPhase 7で必要)
-- [ ] 空シーンでビルドが通ることを確認
-- [ ] Private アップロード → メインアカウントで Join 確認(Windows)
-- [ ] VRChat Webサイトでワールド枠が表示されることを確認
-- [ ] `git init`、`.gitignore`、`.gitattributes` 配置
-- [ ] `git lfs install` で LFS 有効化
-- [ ] GitHub Private リポジトリ作成、初回 push
-- [ ] `CLAUDE.md`, `docs/`, `LICENSE` をリポジトリに配置
+- [x] VCC で新規 World プロジェクト作成 (`amidakuji-world`)
+- [x] VRChat World SDK 3.x 最新版を導入 (3.10.3)
+- [x] UdonSharp 最新版を導入 (Worlds SDK に `legacyPackages` として統合)
+- [x] ClientSim 導入 (同上、Worlds SDK に統合)
+- [x] **Android Build Support を Unity に追加**(Build Settings で Switch Platform 可、SDK/JDK パス設定は Phase 7 で対応)
+- [x] 空シーンでビルドが通ることを確認
+- [x] Private アップロード → メインアカウントで Join 確認(Windows)
+- [x] VRChat Webサイトでワールド枠が表示されることを確認
+- [x] `git init`、`.gitignore`、`.gitattributes` 配置
+- [x] `git lfs install` で LFS 有効化 (`.gitattributes` に LFS フィルタ設定済み)
+- [x] GitHub Private リポジトリ作成、初回 push
+- [x] `CLAUDE.md`, `docs/`, `LICENSE` をリポジトリに配置
+- [x] (追加) blueprintId 退避/復元ワークフロー (`scripts/Save-BlueprintId.ps1` / `Restore-BlueprintId.ps1` + `.blueprint-id.local`)
 
 **完了基準**: 空ワールドでメインアカウントが Join できる + リポジトリが整っている
 
