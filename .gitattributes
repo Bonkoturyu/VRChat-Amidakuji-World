@@ -1,0 +1,65 @@
+# =============================================================================
+# Git LFS Configuration for Unity + VRChat Project
+# =============================================================================
+
+# Images (大きいバイナリ) ----------------------------------------------------
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+
+# 大きめのPNG/JPGはLFSへ(小さいUI素材はそのままGit管理でも可)
+# 必要に応じて個別指定でも良いが、まとめてLFSに寄せたほうがシンプル
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+
+# 3D Models ----------------------------------------------------------------
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.obj filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.blend1 filter=lfs diff=lfs merge=lfs -text
+*.dae filter=lfs diff=lfs merge=lfs -text
+*.3ds filter=lfs diff=lfs merge=lfs -text
+*.mb filter=lfs diff=lfs merge=lfs -text
+*.ma filter=lfs diff=lfs merge=lfs -text
+
+# Audio --------------------------------------------------------------------
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.aiff filter=lfs diff=lfs merge=lfs -text
+*.aif filter=lfs diff=lfs merge=lfs -text
+*.flac filter=lfs diff=lfs merge=lfs -text
+
+# Video --------------------------------------------------------------------
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+*.avi filter=lfs diff=lfs merge=lfs -text
+*.webm filter=lfs diff=lfs merge=lfs -text
+
+# Fonts --------------------------------------------------------------------
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+
+# Unity packaged binary ----------------------------------------------------
+*.unitypackage filter=lfs diff=lfs merge=lfs -text
+
+# 注: 以下は Unity 2022 ではテキストYAMLなので LFS 対象外
+# *.unity, *.prefab, *.mat, *.asset, *.controller, *.anim, *.physicsMaterial2D
+# Project Settings は Force Text モードを前提とする(Edit > Project Settings >
+# Editor > Asset Serialization Mode = "Force Text" が VCC デフォルト)
+
+# Line endings -------------------------------------------------------------
+# Unity が扱うテキストアセットは Unix LF で統一
+*.cs text eol=lf
+*.shader text eol=lf
+*.cginc text eol=lf
+*.hlsl text eol=lf
+*.compute text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
