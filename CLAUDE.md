@@ -25,6 +25,7 @@
 amidakuji-world/
 ├── CLAUDE.md            ← このファイル(プロジェクト規約・ナビゲーション)
 ├── BACKLOG.md           ← 課題・進捗・v1.1+ アイデア
+├── LICENSE              ← MIT License
 ├── .gitignore           ← Unity/VRChat向け除外
 ├── docs/
 │   ├── SPEC.md             ← 仕様(ロック済み)

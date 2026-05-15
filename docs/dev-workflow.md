@@ -8,8 +8,21 @@ v1.0 公開(5/31)までは最小限の運用、公開後に段階的に整備す
 ### 1.1 GitHub Private Repository
 
 - リポジトリ名: `amidakuji-world` (個人の Private リポジトリ)
-- ライセンス: 個人開発のため未設定(v1.0公開後にライセンス検討)
-- README.md は v1.0 公開時に整備(ワールド紹介・スクショ・操作説明)
+- ライセンス: **MIT License** (ルート `LICENSE` ファイル配置済み)
+- README.md は v1.0 公開時に整備(ワールド紹介・スクショ・操作説明・OSS依存のクレジット)
+
+### ライセンス採用方針
+
+VRChat OSS界隈(UdonSharp, lilToon, ClientSim, AudioLink, VRCFury 等)はMITが事実上のデファクト。本プロジェクトも以下の理由でMITを採用:
+
+- 商用利用OK(将来BOOTH等で派生物を出す可能性に対応)
+- VRChat翻訳ツール(別プロジェクト)とのライセンス一貫性
+- VRChat公式パッケージ群(UdonSharp等)との衝突がない
+- 簡潔(1ファイル配置で済む)
+
+### 依存パッケージのライセンス取り扱い
+
+`Packages/` 配下に VCC がインストールする外部パッケージ(UdonSharp, ClientSim, 任意でlilToon等)は、それぞれ自身の LICENSE ファイルを同梱している。これらは触らずそのまま残す。README.md にクレジット記載することで MIT のAttribution要件を満たす。
 
 ### 1.2 ディレクトリ運用
 
