@@ -232,14 +232,133 @@ VCC は `Packages/manifest.json` を編集することで VRChat SDK や UdonSha
 
 `Library/PackageCache/` は自動再生成されるため除外(`.gitignore` 済み)。
 
-## 9. Blueprint ID の保護ワークフロー
+## 9. VRChat ワールド公開フロー (Private → Labs → Public)
+
+VRChat には「Build時にPublic/Private選択」のような単純なトグルは存在せず、3段階の状態を経て公開する仕組みになっている。アップロードしただけでは絶対に他人には公開されないので、開発中は安心して何度でも Build & Upload して良い。
+
+### 状態遷移
+
+```
+[SDK Build & Upload]
+        ↓
+   Private (自動)
+   - 自分しか入れない
+   - 招待 or ポータルで他人を入れることは可能
+   - Build & Upload を繰り返してもPrivateのまま、バージョン更新されるだけ
+        │
+        ↓ (SDKまたはvrchat.com から明示的に操作)
+   Community Labs
+   - Labsオプトインユーザーが見つけられる
+   - 1ワールド/週の公開制限
+        │
+        ↓ (VRChat側の自動判定、待ち時間あり)
+   Public
+   - 全VRChatユーザーが Worlds タブで見つけられる
+```
+
+### Build & Upload と Build & Test の使い分け
+
+| 操作 | 動作 | 用途 |
+|---|---|---|
+| `Build & Test` | ローカルクライアントで一時起動 | 単体ローカルテスト、毎日の動作確認 |
+| `Build & Test (Multi-Client)` | ローカル複数クライアント起動 | 多人数同期テスト |
+| `Build & Upload` | VRChatサーバにアップロード(Private) | 実機HMD検証、Late Joinerテスト |
+
+Phase 1〜9 では `Build & Test` をメインに、`Build & Upload` は実機マルチクライアント検証や HMD実機での感触確認時のみ。
+
+### Publish to Community Labs の操作
+
+`Build & Upload` 後、以下のいずれかから:
+
+- **SDK経由**: Builder タブの "World Visibility" セクションに表示される「Publish to Community Labs」ボタン
+- **Web経由**: https://vrchat.com/home/worlds → 自分のワールド → "Danger Zone" → "Publish to Community Labs"
+
+### 公開時の前提条件
+
+- VRChatアカウントの Trust Rank が **User以上** であること(`New User` ではダメ)
+- 1ワールド/週の Publish 制限内であること
+- ワールド情報(タイトル、説明、サムネイル)が設定済みであること
+
+### Public 昇格
+
+Publicへの昇格は VRChat 側の自動判定。VRChat側の評価指標(訪問者数、滞在時間、Favorite数など)に基づいて自動的にPublic昇格する。具体的な閾値・期間は公開されていない。v1.0 の到達目標は Labs 公開まで、Public 昇格は時間任せ。
+
+## 10. クロスプラットフォーム (PC + Android) ビルドワークフロー
+
+v1.0 では Windows + Android の両プラットフォームに対応する([ADR-0010](./adr/0010-android-in-v1.0-scope.md))。
+同じ Blueprint ID に対して、プラットフォームごとに別ビルドをアップロードする仕組み。
+
+### 10.1 初回セットアップ (Phase 0)
+
+- Unity Hub から **Android Build Support** モジュールを追加インストール
+- VCC で `amidakuji-world` プロジェクトを開く
+- VRChat SDK Control Panel の Builder タブで Platform が Windows になっていることを確認
+
+### 10.2 通常開発時 (Phase 1〜6)
+
+- Build Platform は **Windows のまま** で開発
+- ClientSim と Build & Test で PC 環境を中心にイテレーション
+- ただし以下は Phase 1 から守る:
+  - マテリアルを `Mobile/VRChat/Lightmapped` 系で作成
+  - テクスチャ 1024×1024 以下
+  - 透明度マテリアル使用しない
+  - GPU Instancing を全マテリアルで有効化
+
+### 10.3 Android プラットフォーム切替 (Phase 7)
+
+1. VRChat SDK Control Panel の **Builder タブ → Build セクション → Platform ドロップダウン**
+2. Windows のチェックを外し、**Android** をチェック
+3. "Switch" 確認ダイアログで切替実行
+4. **再インポートが走る**(プロジェクトサイズによっては 10〜30 分かかる、放置)
+5. 完了後、Validation メッセージを確認
+6. 問題があれば対処(マテリアル変更、テクスチャ縮小、コンポーネント除去)
+7. Build & Test (Android) で Quest シミュレートを起動して確認
+8. Quest 実機で Build & Test、または Build & Upload で Private アップロード後 Quest から Join
+
+### 10.4 Blueprint ID の共有
+
+PC 版と Android 版は **同じ Blueprint ID** で紐づける必要がある。
+
+- 初回 PC でアップロードしたときに自動的に Blueprint ID が生成され、`VRCWorld` の Pipeline Manager コンポーネントに記録される
+- Android に切替後も同じシーン・同じ `VRCWorld` を使うので、Blueprint ID は自動的に保たれる
+- 別シーンや別プロジェクトを使う場合は、Pipeline Manager の "Detach" → Blueprint ID をペースト で同期する
+
+### 10.5 開発ループ(Phase 7 以降)
+
+```
+1. Windows 版で機能追加・修正
+2. Build & Test (PC) で動作確認
+3. Build & Upload (PC) で Private アップロード
+4. PC実機で確認
+
+5. Platform を Android に切替(数十分の再インポート覚悟)
+6. Build & Test (Android) または Quest 実機で確認
+7. Build & Upload (Android) で同じ Blueprint ID にアップロード
+8. Quest 実機で確認
+
+9. Platform を Windows に戻して次の機能へ
+```
+
+**注意**: Platform 切替時の再インポートは時間がかかるため、Phase 7 以降は「PC開発を一段落させてから Android チェック」というリズムが推奨。毎日の細かい切替は避ける。
+
+### 10.6 マルチプラットフォーム同時ビルド (非推奨)
+
+SDK の Builder タブで「Windows と Android を同時選択 → Build」も可能ではあるが、**SDK 3.7.6 で無限ループになるバグが報告されている**。安定するまでは 1 プラットフォームずつアップロードする方が安全。
+
+### 10.7 iOS 非対応の方針
+
+v1.0 では iOS ビルドは作らない([ADR-0010](./adr/0010-android-in-v1.0-scope.md))。
+
+VRChat には実験的な「iOS で Android ビルドを読む」フォールバック機能があり、これに頼って iOS ユーザーが入れる可能性は許容するが、保証はしない。v1.1 で iOS 実機テスト体制が整ってから対応する。
+
+## 11. Blueprint ID の保護ワークフロー
 
 VRChat の `blueprintId` (例: `wrld_13f1b8a9-...`) は個人アカウント固有のワールド識別子で、`Build & Publish` 時にシーンファイル内の VRC Scene Descriptor へ自動書き込みされる。リポジトリにコミットすると、
 
 - 他者がフォークしても同じ ID は使えない(別アカウントから上書きできない)
 - 個人が運用するワールド ID が公開リポジトリに混入する
 
-ため、シーンファイルに書き込まれた blueprintId はコミット前に退避し、コミット後に書き戻す運用とする。
+ため、シーンファイルに書き込まれた blueprintId はコミット前に退避し、コミット後に書き戻す運用とする。PC 版・Android 版いずれも同じ Blueprint ID を共有するため、プラットフォーム切替前後どちらでも退避・復元の対象は同じシーンファイル 1 つ。
 
 ### 退避先
 
@@ -252,32 +371,46 @@ VRChat の `blueprintId` (例: `wrld_13f1b8a9-...`) は個人アカウント固�
 | --- | --- |
 | `scripts/Save-BlueprintId.ps1` | シーンファイル内の `blueprintId: wrld_*` を `.blueprint-id.local` に保存し、シーンファイル内の値を空にする |
 | `scripts/Restore-BlueprintId.ps1` | `.blueprint-id.local` の値を対応するシーンファイルへ書き戻す (冪等) |
+| `scripts/Save-BlueprintId.cmd` / `scripts/Restore-BlueprintId.cmd` | 上記 `.ps1` を `-NoProfile -ExecutionPolicy Bypass` 付きで呼ぶラッパー。ExecutionPolicy で `.ps1` 実行がブロックされる環境向け |
+
+PowerShell の ExecutionPolicy が `Restricted` / `AllSigned` の場合、`pwsh scripts/Save-BlueprintId.ps1` は「スクリプトの実行が無効になっている」セキュリティエラーで起動できない。システム設定を変えずに回避するため、`.cmd` ラッパーを併設してある。`.cmd` 経由の呼び出しを基本にし、生 `pwsh` 呼び出しは ExecutionPolicy 設定済み環境向けの代替として併記する。
 
 ### コミット前
 
-```powershell
-pwsh scripts/Save-BlueprintId.ps1
+```cmd
+:: 推奨 (.cmd ラッパー経由、ExecutionPolicy 制限を回避)
+scripts\Save-BlueprintId.cmd
 git add -u
 git commit -m "..."
 git push
 ```
 
-### コミット後 (Unity 作業を継続する場合)
-
 ```powershell
-pwsh scripts/Restore-BlueprintId.ps1
+# 代替: ExecutionPolicy を許可している環境では直接呼び出しても良い
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/Save-BlueprintId.ps1
 ```
 
-復元後、シーンファイルは modified 状態として残る(VRChat SDK 上でアップロードを継続するため)。これは許容し、次回コミット前に再度 `Save-BlueprintId.ps1` を実行する。
+### コミット後 (Unity 作業を継続する場合)
+
+```cmd
+scripts\Restore-BlueprintId.cmd
+```
+
+```powershell
+# 代替
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/Restore-BlueprintId.ps1
+```
+
+復元後、シーンファイルは modified 状態として残る(VRChat SDK 上でアップロードを継続するため)。これは許容し、次回コミット前に再度 `Save-BlueprintId.cmd` を実行する。
 
 ### 初回セットアップ (新しい開発環境)
 
 1. VCC でプロジェクトを開き、VRChat SDK Control Panel から `Build & Publish` を実行 → blueprintId が新規発行されシーンファイルへ書き込まれる
-2. `pwsh scripts/Save-BlueprintId.ps1` を実行して `.blueprint-id.local` を生成
+2. `scripts\Save-BlueprintId.cmd` を実行して `.blueprint-id.local` を生成
 3. 以後は上記「コミット前 / 後」のフローで運用
 
 ### 注意
 
-- `Build & Publish` の度にシーンファイルへ blueprintId が再注入される。**コミット前の `Save-BlueprintId.ps1` 実行を忘れない**
-- 複数シーンを扱う場合は `.blueprint-id.local` に複数行登録できる。`Save-BlueprintId.ps1 -SceneFile <path>` で対象を指定する
+- `Build & Publish` の度にシーンファイルへ blueprintId が再注入される。**コミット前の `Save-BlueprintId.cmd` 実行を忘れない**
+- 複数シーンを扱う場合は `.blueprint-id.local` に複数行登録できる。`Save-BlueprintId.cmd -SceneFile <path>` で対象を指定する(引数は `.ps1` にそのまま渡る)
 - 自動化 (git hook 化) は VRChat SDK のビルドフローと競合するリスクがあるため、当面は手動運用とする

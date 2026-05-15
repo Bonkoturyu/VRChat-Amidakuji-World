@@ -10,27 +10,39 @@ World Scene
 ├── GameManager (UdonBehaviour)                ← ステート・同期の中枢
 ├── AmidakujiGenerator (UdonBehaviour)         ← seedから配置算出
 ├── Tracks
-│   ├── VerticalLines[0..3] (Prefab)           ← 縦通路ビジュアル
-│   └── HorizontalBars[lane][seg] (Prefab)     ← 横線全パターン事前配置
+│   ├── VerticalLanes[0..3] (Prefab)           ← 縦通路(歩行可能な床+柱)
+│   └── HorizontalBars[lane][seg] (Prefab)     ← 横線全パターン事前配置(歩行可能)
 ├── Carts[0..3] (Prefab)
 │   ├── VRC_Station
 │   └── CartController (UdonBehaviour)
 ├── EntryArea
 │   ├── Seats[0..3]                            ← 着座Interact
-│   └── StartButton (UdonBehaviour)            ← Master限定
-├── SpectatorArea
-│   ├── ObservationDeck                        ← ガラス床バルコニー
-│   └── ScreenSystem
-│       ├── OverviewCamera                     ← Orthographic, top-down
-│       ├── RenderTexture (Asset)
-│       └── ScreenQuad (Material: RT)
-├── PrizeAreas[0..3]                           ← ゴール後テレポート先
-└── UI
-    ├── RulesPanel
-    └── ResultDisplay                          ← Worldspace Canvas
+│   ├── StartButton (UdonBehaviour)            ← Master限定
+│   └── ResultDisplay (Worldspace UI)          ← 結果掲示
+├── GoalBarriers[0..3]                         ← 各レーン下端の物理メッシュバリア
+└── PrizeAreas[0..3]                           ← ゴール後テレポート先
 ```
 
 シーンのHierarchy詳細とPrefab分割は [scene-structure.md](./scene-structure.md) を参照。
+
+## Layer 設計 (重要)
+
+カートと歩行者が同じ空間を使用するため、衝突分離が必須。
+
+| Layer | 用途 |
+|---|---|
+| `Default` (0) | 通常オブジェクト、世界の床・壁 |
+| `Player` (9) | VRChat予約、リモートプレイヤー |
+| `PlayerLocal` (10) | VRChat予約、ローカルプレイヤー |
+| **User22: Cart** | カートの Visual/Collider 用。Player と衝突しない設定 |
+| **User23: GoalBarrier** | ゴール手前バリア。Player とは衝突、Cart とは衝突しない |
+
+Edit > Project Settings > Physics で:
+- `Cart × Player` の衝突を **Off**
+- `Cart × PlayerLocal` の衝突を **Off**
+- `GoalBarrier × Cart` の衝突を **Off**
+- `GoalBarrier × Player` の衝突を **On**(歩行者は通れない)
+- `GoalBarrier × PlayerLocal` の衝突を **On**
 
 ## データフロー(レーススタート時シーケンス)
 
@@ -106,6 +118,35 @@ CartController[n].ComputePath(seed, n)
 - gameState == Idle のときのみ反応
 - 自分のレーン番号を `GameManager.participantPlayerIds[]` に登録 (Ownership transfer)
 
+## 観戦システム(追いかけ式)
+
+[ADR-0009](./adr/0009-follow-alongside-spectator.md) で決定。
+
+### 物理構造
+
+- あみだくじ本体は **全プレイヤーが歩行可能**(コライダー付き床メッシュ)
+- カートは Cart レイヤー、歩行者と衝突しない
+- 各レーン下端の手前 1.5m に **ゴール手前バリア** を設置
+  - バリアは GoalBarrier レイヤー
+  - 物理メッシュ製の壁、カート幅(約1.5m × 0.5m高さ)の隙間あり
+  - 隙間の高さ 0.5m により、歩行者は立ったまま通れない
+  - カートは隙間を通り抜けてゴール位置に到達 → 座っているプレイヤーをテレポート
+
+### 動線
+
+```
+[Spawn] → [EntryArea (最上部)] → 縦線・横線を歩いて下降 → [Goal Barriers]
+                                                            ↑ ここで止まる
+                                                          (カートだけ通過)
+[Cart で座った参加者] → 自動巡回 → Goal を通過 → [PrizeArea] にテレポート
+```
+
+### 移動速度バランス
+
+- カート速度: 2.0 m/s
+- プレイヤー走行速度: 約 4-5 m/s(VRChatデフォルト)
+- → 歩行者は十分カートに追いつける速度設定
+
 ## Late Joiner対応詳細
 
 仕様レベルの方針は [SPEC.md §9](./SPEC.md#9-同期モデル)。ここでは実装手順を記す。
@@ -128,7 +169,7 @@ CartController[n].ComputePath(seed, n)
    ```
    から現在位置を補間して即座にカート位置を表示
 5. 既にゴール済みのカート(elapsed > totalPathTime)は終端位置で停止
-6. 自分は観戦エリアにスポーン誘導(着座不可状態)
+6. 自分はあみだくじ最上部にスポーン誘導(参加不可状態、観戦に参加)
 
 ### ResultDisplay中に参加した場合
 
@@ -150,8 +191,17 @@ double elapsed = Networking.CalculateServerDeltaTime(now, raceStartTime);
 
 ## パフォーマンス考察
 
+### 共通
+
 - カート位置補間は GameObject Transform 直接更新。Animator不使用で軽量
 - 横線オブジェクトは事前配置 + enable切り替えで、Instantiate不要
-- RenderTextureカメラ1台で +1パス。Culling Maskで描画対象を絞る
-- Reflection Probe は静的Baked。ガラス床の反射ベイク済み
 - Static Batchingに乗せやすいよう、地形・装飾は Static フラグを立てる(詳細 [scene-structure.md §5](./scene-structure.md))
+
+### Android (Quest) 固有
+
+- 透明度マテリアルゼロ(観戦デッキ廃止により達成)
+- マテリアル数 20 以下を意識
+- テクスチャ 1024×1024 を上限
+- GPU Instancing 全マテリアルで有効化
+- Realtime Light なし、全 Baked
+- 詳細制約は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) と CLAUDE.md パフォーマンスバジェット参照

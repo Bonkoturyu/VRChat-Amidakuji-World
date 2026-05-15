@@ -1,49 +1,38 @@
 # ADR-0004: 観戦スクリーンをRenderTexture方式で実装
 
-- **Status**: Accepted
+- **Status**: **Superseded by [ADR-0009](./0009-follow-alongside-spectator.md)**
 - **Date**: 2026-05-15
+- **Superseded**: 2026-05-15
 
-## Context
+> **このADRは廃止されました。**
+> v1.0 で Android 対応([ADR-0010](./0010-android-in-v1.0-scope.md))を含めることが決まり、
+> 観戦システムは「追いかけ式」へ変更されました。
+> 詳細は [ADR-0009](./0009-follow-alongside-spectator.md) を参照。
+
+---
+
+## (廃止) 当初の Context
 
 非参加者がカート走行を観戦する手段が必要。候補:
 
-1. **A. 物理観戦デッキのみ**: 観戦者は直接バルコニーから見る
-2. **B. RenderTextureスクリーン**: Unity Camera → RenderTexture → Quad
-3. **C. VRC Mirror流用**: ミラーで反射させる
+1. A. 物理観戦デッキのみ
+2. B. RenderTextureスクリーン: Unity Camera → RenderTexture → Quad
+3. C. VRC Mirror流用
 
-## Decision
+## (廃止) 当初の Decision
 
-**A + B の併用** を採用する。
+A + B の併用を採用予定だった:
 
-- 物理観戦デッキはガラス床バルコニーとして必ず設置
-- 加えて、エントリーエリアに RenderTexture スクリーンを1枚配置(俯瞰カメラ)
+- 物理観戦デッキはガラス床バルコニーとして設置
+- エントリーエリアに RenderTexture スクリーンを1枚配置(俯瞰カメラ)
 
-## Consequences
+## 廃止の理由
 
-### Positive
+- v1.0 で Android 対応を含めるため、透明度(ガラス床)と RenderTexture が
+  モバイルGPUのパフォーマンス要件と衝突
+- 観戦UXを「追いかけ式」に変更することで、より能動的な体験+モバイル制約
+  クリアが同時に達成された
 
-- 観戦者の位置取り自由度が高い
-- 参加者の家族・友人が「何が起きているか」を瞬時に把握できる
-- 結果表示UIをスクリーンにオーバーレイ可能
+## 改訂履歴
 
-### Negative
-
-- RenderTextureはGPU負荷増加要因 (+1描画パス)
-- 解像度・カメラ設定のチューニング工数発生
-
-### 軽減策
-
-- カメラのCulling Maskで観戦者・UIレイヤーを除外
-- 解像度 1280×720 に抑える
-- Clear Flags = Solid Color にしてスカイボックス描画スキップ
-- v1.0はカメラ1台のみ。複数アングル切り替えは v1.1
-
-### C案不採用理由
-
-- VRC Mirrorはプレイヤーアバターの反射がメインで、構造物全体の俯瞰には向かない
-- パフォーマンスコストも高い
-
-### v1.1 拡張余地
-
-- 複数カメラ用意 (横全景・カート追尾) + RTを切り替えで観戦体験を強化
-- カメラ切り替えボタンを観戦エリアに設置
+- 2026-05-15: ADR-0009 により Superseded
