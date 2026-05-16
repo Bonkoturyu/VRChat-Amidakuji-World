@@ -41,7 +41,7 @@ iOS は v1.0 から外す。理由:
 - Realtime Light: ゼロ(全てBaked、PC版も同様)
 - Cloth、Mirror、Video Player: 使用しない
 - GPU Instancing: 全マテリアルで有効化
-- カスタムシェーダー: 使う場合は `Mobile/VRChat/Lightmapped` ベースで作成
+- ベースシェーダー: `VRChat/Mobile/Standard Lite` を採用(`_Color` + `Enable GPU Instancing` + Lightmap 対応)。詳細とプレースホルダ運用は [material-set.md](../material-set.md) を参照
 
 ## Consequences
 
@@ -86,3 +86,4 @@ iOS は v1.0 から外す。理由:
 ## 改訂履歴
 
 - 2026-05-15: 制定(BACKLOG の v1.2 → v1.0 への移行を正式化)
+- 2026-05-16: ベースシェーダーを `Mobile/VRChat/Lightmapped` → `VRChat/Mobile/Standard Lite` に変更(前者は `_Color` と GPU Instancing 対応なし。詳細は [material-set.md](../material-set.md) §2.1)

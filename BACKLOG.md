@@ -9,8 +9,9 @@
 - [x] アーキテクチャ・シーン構成案ロック (docs/architecture.md, docs/scene-structure.md)
 - [x] Android 対応スコープ決定 (ADR-0010)
 - [x] 観戦システム方針決定: 追いかけ式 (ADR-0009)
+- [x] 平面水平レイアウト決定 (ADR-0011)
 - [x] Phase 0: VCC環境構築 + GitHub Private Repo + 空ワールド Privateアップロード疎通
-- [ ] Phase 1: 静的あみだくじ構造(歩行可能、Mobile考慮)の VR HMD 実機確認
+- [ ] Phase 1: 平面水平あみだくじ床(MainFloor + 縦線・横線、Mobile考慮)の VR HMD 実機確認
 - [ ] Phase 2: カート単体走行 + 歩行者非衝突レイヤー設定
 - [ ] Phase 3: ランダム生成 + seed同期 (2クライアントで一致確認)
 - [ ] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール手前バリア

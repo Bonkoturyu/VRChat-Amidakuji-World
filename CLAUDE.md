@@ -1,6 +1,6 @@
 # Amidakuji World - VRChat World Project
 
-巨大あみだくじをテーマにしたVRChatワールド (PC + Android クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。非参加者はあみだくじ構造内を自由に走り回り、カートを追いかけて間近で観戦できる。
+巨大あみだくじをテーマにしたVRChatワールド (PC + Android クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。**ワールドは平面水平レイアウト**(地面にあみだくじが描かれた状態、段差なし、[ADR-0011](./docs/adr/0011-flat-horizontal-layout.md))。非参加者は同じ床面を自由に走り回り、カートを追いかけて間近で観戦できる。
 
 ## 現在のステータス
 
@@ -87,7 +87,7 @@ amidakuji-world/
 
 ## Android (Quest) 対応の主要制約
 
-- **シェーダー**: World では制限なしだが、`Mobile/VRChat/Lightmapped` を基本に使う
+- **シェーダー**: World では制限なしだが、`VRChat/Mobile/Standard Lite` を基本に使う(`_Color` と `Enable GPU Instancing` を備え、Lightmap 対応 + Quest 軽量パス。詳細は [docs/material-set.md](./docs/material-set.md) §2.1)
 - **透明度**: 使わない(マテリアルでアルファブレンド禁止)
 - **Mirror, Cloth, Video Player**: 使わない
 - **Post Processing**: 控えめ(SSR, SSAO は VR で問題)

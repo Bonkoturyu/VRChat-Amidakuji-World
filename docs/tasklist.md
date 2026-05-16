@@ -22,18 +22,23 @@ Phase別タスク。各 Phase は Build & Test (動作確認) まで含めて「
 
 ## Phase 1: 静的あみだくじ構造 [5/16-5/17] [2日]
 
-- [ ] ProBuilder で縦通路ブロックを Prefab 化(歩行可能な床つき)
-- [ ] 縦線4本を間隔 4m で並べる(Y方向 60m)
-- [ ] 横線(連絡通路)を全パターン分配置(disable状態)
-- [ ] スタート/ゴール位置にマーカーオブジェクト配置
-- [ ] **ゴール手前バリアの仮配置**(カート用隙間付き)
-- [ ] スポーンエリア仮配置
-- [ ] エントリーエリア仮配置(座席位置のマーカーのみ、観戦デッキは無し)
-- [ ] 賞品エリア4ゾーン仮配置(ただの箱でOK)
-- [ ] スケール感を VR HMD で実機確認
-- [ ] **マテリアルは初手から `Mobile/VRChat/Lightmapped` 系で組む**(Android対応のため)
+レイアウト: **平面水平**([ADR-0011](./adr/0011-flat-horizontal-layout.md))。
+Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefab-checklist.md)、
+マテリアル定義は [docs/material-set.md](./material-set.md) を参照。
+`ProjectSettings/TagManager.asset` と `DynamicsManager.asset` は更新済み(Cart=User22, GoalBarrier=User23 と衝突 Matrix)。
 
-**完了基準**: シーン内を歩き回ってあみだくじ構造全体を体感できる、観戦者として上から下まで歩行可能
+- [x] **MainFloor** を Primitive Cube で配置(Scale **16**×0.2×80、上面 Y=0) — 2026-05-16
+- [x] **VerticalLine.prefab** を Primitive Cube で作成(細い線、Scale 0.2×0.02×60)、VLine_0〜3 配置 — 2026-05-16
+- [x] **HorizontalBar.prefab** を Primitive Cube で作成(Scale 4×0.02×0.2)、全 **33** 本配置(S00〜S10 × 3 ペア、全 active 状態) — 2026-05-16
+- [ ] スタート/ゴール位置にマーカー Empty GameObject 配置 — Phase 2 着手時に Cart_N と GoalBarrier_N の Transform を参照する形で対応予定(別 Empty 不要)
+- [x] **ゴール手前バリアの仮配置**(カート用隙間付き、Z=-58.5、各バリア 4m 幅で MainFloor 全幅を密に塞ぐ) — 2026-05-16
+- [x] DefaultSpawn 配置(Position (0, 0.1, +10))、Respawn Height Y=-1 — 2026-05-16
+- [x] エントリーエリア仮配置(MainFloor 上の Seats 4 つ + StartButton 仮 + RulesPanel 仮 + ResultDisplay 仮) — 2026-05-16
+- [x] 賞品エリア4ゾーン仮配置(Z=-64 の小部屋 4 つ、3.5m 幅で互いに 0.5m 隙間、PrizeArea_0〜3) — 2026-05-16
+- [ ] スケール感を VR HMD で実機確認(歩行体験フラットか、線の段差を感じないか、GoalBarrier 隙間を歩行者が通れないか) — 2026-05-17 予定
+- [x] **マテリアルは初手から `VRChat/Mobile/Standard Lite` 系で組む**(Android対応のため。Phase 1 はテクスチャ無し・色のみのプレースホルダで OK。詳細は [material-set.md](./material-set.md)) — 2026-05-16 完了、11 個作成済み(M_UI_Display は Phase 5 で対応、`M_Post_Track` は `M_Line` にリネーム + 白に変更済み)
+
+**完了基準**: 平面床(Z=+12 〜 Z=-68)を端から端まで歩ける、あみだくじの線が床面に描かれて見える、GoalBarrier の向こうに歩行者は侵入できない、床外に出ると自動リスポーンされる
 
 ## Phase 2: カート単体走行 [5/18-5/20] [3日] ★山1
 

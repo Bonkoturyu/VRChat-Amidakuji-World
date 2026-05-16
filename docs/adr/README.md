@@ -17,6 +17,7 @@
 | [ADR-0008](./0008-4lane-scope-scalable-design.md) | v1.0は4レーン固定、内部設計は可変サイズ対応 | Accepted |
 | [ADR-0009](./0009-follow-alongside-spectator.md) | 観戦システムを「追いかけ式」に変更(観戦デッキ・スクリーン廃止) | Accepted |
 | [ADR-0010](./0010-android-in-v1.0-scope.md) | Android 対応を v1.0 に含める | Accepted |
+| [ADR-0011](./0011-flat-horizontal-layout.md) | あみだくじ本体を「平面水平レイアウト」に変更(縦置き 60m 構造を廃止) | Accepted |
 
 ## フォーマット
 

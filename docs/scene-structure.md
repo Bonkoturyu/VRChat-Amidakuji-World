@@ -3,6 +3,9 @@
 Phase 1着手時の Unity シーン構成、Prefab分割、レイヤー・命名規約の指針をまとめる。
 v1.0 では PC + Android 両プラットフォーム対応のため、モバイル制約を意識した構成にしている。
 
+レイアウト方針(2026-05-16 改訂): 全てを Y=0 平面の床上に配置する **平面水平レイアウト**
+([ADR-0011](./adr/0011-flat-horizontal-layout.md))。縦線・横線は床上面に貼り付く細い Cube(高さ 2 cm)で表現。
+
 ---
 
 ## 1. ルート Hierarchy
@@ -10,46 +13,46 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 ```
 [Scene Root]
 ├── _World/                       ← ワールド要素の organizational root
-│   ├── Environment/              ← 装飾・地形・空・床(Static)
+│   ├── Environment/              ← 装飾・空(Static)
 │   │   ├── Skybox_Reference (任意)
-│   │   ├── Ground/
 │   │   └── Decoration/
 │   ├── SpawnPoints/
 │   │   └── DefaultSpawn          ← VRC Scene Descriptor 参照
-│   ├── AmidakujiTrack/           ← あみだくじ本体(歩行可能構造)
-│   │   ├── VerticalLanes/
-│   │   │   ├── Lane_0  (Prefab Instance)
-│   │   │   ├── Lane_1  (Prefab Instance)
-│   │   │   ├── Lane_2  (Prefab Instance)
-│   │   │   └── Lane_3  (Prefab Instance)
+│   ├── Ground/                   ← 床(単一の大型 Cube)
+│   │   └── MainFloor             ← Scale (18, 0.2, 80), Position (0, -0.1, -28)
+│   ├── AmidakujiLines/           ← あみだくじの線(床上面に貼り付く細い Cube)
+│   │   ├── VerticalLines/
+│   │   │   ├── VLine_0           ← X=-6, Cube Scale (0.2, 0.02, 60)
+│   │   │   ├── VLine_1           ← X=-2
+│   │   │   ├── VLine_2           ← X=+2
+│   │   │   └── VLine_3           ← X=+6
 │   │   ├── HorizontalBars/
-│   │   │   ├── Bar_L0_S00  (Prefab Instance, lane 0-1, seg 0)
-│   │   │   ├── Bar_L0_S01
-│   │   │   ├── ... (全パターン事前配置、最大36個)
-│   │   │   └── Bar_L2_S11
+│   │   │   ├── Bar_L0_S00  (lane pair 0-1, position 0, Z=-3)
+│   │   │   ├── Bar_L0_S01  (Z=-8)
+│   │   │   ├── ... (全パターン事前配置、最大33個 = 11 段 × 3 ペア)
+│   │   │   └── Bar_L2_S10  (lane pair 2-3, position 10, Z=-53)
 │   │   ├── StartMarkers/
 │   │   │   ├── Start_0 ... Start_3
 │   │   │   └── (Empty GameObject, Transformのみ使用)
-│   │   ├── GoalMarkers/
-│   │   │   └── Goal_0 ... Goal_3
-│   │   └── GoalBarriers/         ← カートだけ通れる物理壁
-│   │       ├── Barrier_0  (Prefab Instance, laneIndex=0)
-│   │       ├── Barrier_1
-│   │       ├── Barrier_2
-│   │       └── Barrier_3
+│   │   └── GoalMarkers/
+│   │       └── Goal_0 ... Goal_3
+│   ├── GoalBarriers/             ← カートだけ通れる物理壁
+│   │   ├── Barrier_0  (Prefab Instance, laneIndex=0)
+│   │   ├── Barrier_1
+│   │   ├── Barrier_2
+│   │   └── Barrier_3
 │   ├── Carts/
 │   │   ├── Cart_0  (Prefab Instance, laneIndex=0)
 │   │   ├── Cart_1  (Prefab Instance, laneIndex=1)
 │   │   ├── Cart_2  (Prefab Instance, laneIndex=2)
 │   │   └── Cart_3  (Prefab Instance, laneIndex=3)
-│   ├── EntryArea/                ← あみだくじ最上部
-│   │   ├── Floor/
+│   ├── EntryArea/                ← あみだくじ手前(Z=+3〜+7)
 │   │   ├── Seats/
 │   │   │   ├── Seat_0 ... Seat_3  (Prefab Instances, seatIndex=N)
 │   │   ├── StartButton            ← 一意、Prefab化しない
 │   │   ├── RulesPanel             ← 追いかけ式観戦の説明含む
 │   │   └── ResultDisplay          ← レース結果掲示UI
-│   └── PrizeAreas/
+│   └── PrizeAreas/                ← GoalBarrier の向こう(Z=-60〜-68)
 │       ├── Prize_0  (Prefab Instance, prizeIndex=0)
 │       ├── Prize_1
 │       ├── Prize_2
@@ -68,11 +71,13 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 ```
 
 注: 観戦デッキ(`SpectatorArea`)、観戦スクリーン(`ScreenSystem`)、俯瞰カメラ(`OverviewCamera`)は廃止。
-非参加者はあみだくじ構造そのものを歩いて観戦する([ADR-0009](./adr/0009-follow-alongside-spectator.md))。
+非参加者はあみだくじ床面を歩いて観戦する([ADR-0009](./adr/0009-follow-alongside-spectator.md))。
+歩行可能な床は単一の `MainFloor` のみで、縦線・横線は床上面に貼り付く視覚マーカー(高さ 2 cm の細い Cube)
+([ADR-0011](./adr/0011-flat-horizontal-layout.md))。
 
 **命名規約**:
 - `_` プレフィックス: organizational root (折りたたみ用、構造上の整理)
-- PascalCase + アンダースコア番号: `Lane_0`, `Seat_0`, `Cart_0`, `Barrier_0`
+- PascalCase + アンダースコア番号: `VLine_0`, `Seat_0`, `Cart_0`, `Barrier_0`
 - 番号は 0-indexed(配列インデックスと揃える)
 - Prefab Instance は変更を Override せず、必要な可変項目だけ Inspector で設定
 
@@ -84,8 +89,8 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 
 | Prefab | インスタンス数 | 可変項目 (Inspector) | 内容 |
 |---|---|---|---|
-| `Lane.prefab` | 4 | なし(Transform位置のみ) | 縦通路(歩行可能な床+柱) |
-| `HorizontalBar.prefab` | 最大36 | なし | 横線(歩行可能な連絡通路) |
+| `VerticalLine.prefab` | 4 | なし(Transform位置のみ) | 縦線(細い Cube、高さ 2 cm × 幅 0.2 m × 長さ 60 m) |
+| `HorizontalBar.prefab` | 最大33 | なし | 横線(細い Cube、高さ 2 cm × 幅 4.0 m × 長さ 0.2 m)、11 段 × 3 ペア |
 | `GoalBarrier.prefab` | 4 | `laneIndex (0-3)` | ゴール手前壁(カート用隙間あり) |
 | `Cart.prefab` | 4 | `laneIndex (0-3)`, `GameManager 参照` | カート本体 + VRC_Station + CartController |
 | `Seat.prefab` | 4 | `seatIndex (0-3)`, `GameManager 参照` | 着座 Interact + 視覚マーカー |
@@ -95,6 +100,7 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 
 | GameObject | 理由 |
 |---|---|
+| `MainFloor` | 一意。シーン全体で 1 枚の大型 Cube(18 × 0.2 × 80 m) |
 | `GameManager` | シングルトン。Synced 変数のオーナー |
 | `AmidakujiGenerator` | シングルトン |
 | `StartButton` | 一意、Inspector で GameManager 参照を直接バインド |
@@ -119,7 +125,8 @@ Cart_X (GameObject, Transform 位置 = 起点)  [Layer: Cart]
 ```
 
 - Root に `CartController.cs` (UdonBehaviour)
-- VRC_Station の `Player Mobility` = Mobile、`Seated` = true
+- VRC_Station の `Player Mobility` = **Immobilize (For Vehicle)**(乗り物用、Mobile は着座中の WASD と競合するため不可)
+- VRC_Station の `Disable Station Exit` = true(VR ユーザーはトリガー退出は阻止できない、[ADR-0007](./adr/0007-vrcstation-transform-cart.md))
 - **Cart レイヤー設定により、歩行者プレイヤーと衝突しない**
 
 ### 3.2 GoalBarrier.prefab
@@ -140,11 +147,12 @@ Barrier_X (GameObject)                       [Layer: GoalBarrier]
 
 ```
 Seat_X (GameObject)
-├── Visual/                       ← 着座位置を示すマーカー(ピンスポット等)
+├── Visual/                       ← 着座位置を示すマーカー(灰色、ADR-0011 で Cart-only color 方針)
 └── InteractTrigger (Collider, IsTrigger=true)
-    └── VRC_Interact + SeatInteract.cs (UdonBehaviour)
+    └── SeatInteract.cs (UdonBehaviour、Interact() override)
 ```
 
+- VRC_Interact コンポーネントは SDK 3.x には存在しない。UdonBehaviour + Collider のみでインタラクト可能
 - 着座すると `GameManager.OnSeatClaimed(seatIndex)` を呼ぶ
 - gameState != Idle なら無反応
 
@@ -152,34 +160,44 @@ Seat_X (GameObject)
 
 ```
 Bar_LX_SXX (GameObject)
-├── FloorMesh (歩行可能な床、Mesh + Collider)
-└── Railing (任意装飾)
+└── LineMesh (Primitive Cube, Mesh + Box Collider)
 ```
 
-- 歩行可能な床として機能
+- Cube Scale: (4.0, 0.02, 0.2)、Position は配置時にシーンで設定
+- Material: `M_Line`(白 `#FFFFFF`)
+- Collider は残す(2 cm の段差として残る、ただし VRChat の Step Climb 内で歩行体験ゼロ)
 - `AmidakujiGenerator` から `SetActive(true/false)` で表示制御
 - Static flag は立てない(動的 enable のため Static Batching 非対象)
 
-### 3.5 Lane.prefab
+### 3.5 VerticalLine.prefab
 
 ```
-Lane_X (GameObject)
-├── FloorMesh (歩行可能な床、Mesh + Collider)
-└── PostMesh (柱、視覚装飾)
+VLine_X (GameObject)
+└── LineMesh (Primitive Cube, Mesh + Box Collider)
 ```
 
-- Static flag を立てて Static Batching に乗せる
-- 歩行可能な床面コライダー(プレイヤーが上を歩ける)
+- Cube Scale: (0.2, 0.02, 60.0)、Position は配置時にシーンで設定
+- Material: `M_Line`(白 `#FFFFFF`)
+- Static flag を立てて Static Batching に乗せる(常時表示のため)
+- 縦線は AmidakujiGenerator の制御対象外(常時 enable)
 
 ### 3.6 PrizeArea.prefab
 
 ```
-Prize_X (GameObject)
-├── Floor (Mesh)
-├── Walls (Mesh)
+Prize_X (GameObject, Root Rotation Y=180)
+├── Walls/
+│   ├── Wall_N (奥側、+Z 側)
+│   ├── Wall_E, Wall_W (左右壁)
+│   ├── Wall_S_Left, Wall_S_Right (手前側、隙間 1.5m 空ける)
+├── Ceiling (天井)
 ├── TeleportTarget (Empty GameObject) ← TeleportTo の位置参照
-└── DecorationMount (Empty)          ← v1.1で装飾を入れる場所
+└── (v1.1 で DecorationMount を追加可能)
 ```
+
+- 部屋サイズ: 3.5 × 4 × 8 m(4m レーン間隔で隣と 0.5m 隙間を残す)
+- 床は MainFloor が下まで続いているので Prefab 内に床なし
+- Root Rotation Y=180 にすることで Wall_S_Left/Right の隙間が +Z(GoalBarrier 側)を向く
+- 詳細は [phase1-prefab-checklist.md §7](./phase1-prefab-checklist.md) 参照
 
 ---
 
@@ -226,9 +244,10 @@ Static Batching・Light Baking のため、以下の方針:
 
 | 対象 | Static フラグ |
 |---|---|
-| Environment 装飾、床、壁 | **All Static** |
-| Lane Prefab | **All Static** |
-| HorizontalBar | **None** (動的 enable のため) |
+| Environment 装飾 | **All Static** |
+| MainFloor(単一の床 Cube) | **All Static** |
+| VerticalLine Prefab(縦線) | **All Static**(常時表示) |
+| HorizontalBar Prefab(横線) | **None** (動的 enable のため) |
 | GoalBarrier | **All Static**(配置は固定) |
 | Cart | **None** (動く) |
 | Seat | Visual部分のみ Static、InteractTrigger は None |
@@ -236,7 +255,7 @@ Static Batching・Light Baking のため、以下の方針:
 | PrizeArea | **All Static** |
 | Managers | None |
 
-Light Probe Group はあみだくじ構造内とプレイヤーが歩く範囲に配置。
+Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12)に格子状に配置。
 
 ---
 
@@ -297,122 +316,153 @@ Light Probe Group はあみだくじ構造内とプレイヤーが歩く範囲�
 
 ## 7. 配置数値の指針 (Phase 1 で参照)
 
-### あみだくじ本体
+座標系: Unity 標準。Y=0 が床上面、Y 軸が高さ、X が左右、**Z が EntryArea(正)〜 PrizeArea(負)方向**。
 
-- 縦線間隔: **4.0 m** (X方向)
-- 縦線長さ: **60.0 m** (Y方向、上から下へ)
-- 縦線の上端 Y: **0** (基準)
-- 縦線の下端 Y: **-60**
-- セグメント長さ: 60 / 12 = **5.0 m** (1セグメントあたり)
-- 縦線の中央 X: 4本それぞれ -6, -2, +2, +6 (中心 0)
+### MainFloor(全プレイヤーが歩く床)
 
-### 縦線(歩行可能)の床
+- 単一の Primitive Cube
+- Scale: **(18, 0.2, 80)** (X 幅 18 m、厚み 0.2 m、Z 奥行 80 m)
+- Position: **(0, -0.1, -28)** → 上面 Y=0、X 範囲 -9〜+9、Z 範囲 -68〜+12
+- Material: `M_Floor_Common`、Static フラグ All Static
 
-- 床幅: **1.5 m**(カート幅 0.9 m + 両側 0.3 m の歩行/観戦クリアランス)
-- カートは床中央を走り、両側 0.3 m が歩行者用スペース
+### あみだくじ本体(縦線・横線)
 
-### 横線
+- 縦線本数: **4** ([ADR-0008](./adr/0008-4lane-scope-scalable-design.md))
+- 縦線間隔: **4.0 m** (X方向)、X = **-6, -2, +2, +6**
+- 縦線長さ: **60.0 m** (Z方向、EntryArea 側 Z=+2 → GoalBarrier 側 Z=-58)
+- セグメント長さ: 60 / 12 = **5.0 m**
+- 縦線中心の Z 座標: **-28**(線の Z 範囲 +2 〜 -58 の中点)
 
-- 各セグメント境界の Y: -5, -10, ..., -55 (= -5 × (seg+1))
-- 1セグメント境界に 3 ペア (Lane 0-1, 1-2, 2-3)
-- 計 12 × 3 = **36個** の HorizontalBar を事前配置
-- 横線の幅: 1.5m(縦線床と同じ、歩行可能)
+### 縦線(VerticalLine.prefab)
 
-### ゴール手前バリア
+- 全 4 本、Cube Scale **(0.2, 0.02, 60.0)**
+- Position: 各 (X=-6/-2/+2/+6, **Y=0.01**, Z=-28)
+- Material: `M_Line`(白 `#FFFFFF`)
+- 常時表示、Static All Static
 
-- 配置 Y: **-58.5**(縦線下端 -60 の 1.5 m 手前)
-- 隙間幅: **1.5 m**(縦線床幅と一致、カート幅 0.9 m + 両側 0.3 m)
-- 隙間高さ: **0.5 m**(歩行者がしゃがんでも通れない高さ。Phase 1 終了時に小柄アバター + 匍匐姿勢で侵入できないことを VR HMD で確認)
-- 隙間中心位置: 各レーンの中央(X = -6, -2, +2, +6 / Y = -58.0)
+### 横線(HorizontalBar.prefab)
 
-### エントリーエリア
+- Cube Scale **(4.0, 0.02, 0.2)**
+- 横線位置の Z 座標: **-3, -8, -13, -18, -23, -28, -33, -38, -43, -48, -53** (= -3 - 5×S, S=0..10、計 **11 段**)
+- 1 段に 3 本(Lane 0-1, 1-2, 2-3 を結ぶ)、計 11 × 3 = **33 本** 事前配置
+- Lane ペア L=0,1,2 の中心 X: **-4, 0, +4**
+- 命名: `Bar_L{L}_S{S:00}`(例: `Bar_L0_S00` は Lane0-Lane1 間、Z=-3、`Bar_L2_S10` は Lane2-Lane3 間、Z=-53)
+- Material: `M_Line`、動的 enable/disable のため Static フラグなし
+- ゴール手前の run-out zone: 最終横線 Z=-53 から GoalBarrier Z=-58.5 まで 5.5 m。あみだくじの確定演出スペース
 
-- 縦線上端より少し上(Y=+3)、X 方向中心は X=0
-- 床サイズ: **16 m × 8 m**(X 範囲 -8〜+8、Z 範囲 -4〜+4)
-- Seat 配置: 縦線上端の真上 (X = -6, -2, +2, +6 / Y = +3 / Z = -2)
-- StartButton: 中央前面 (X=0, Y=+4.5, Z=+3)
-- ResultDisplay: StartButton 付近の壁面(詳細は Phase 5 で確定)
+### ゴール手前バリア(GoalBarrier.prefab)
 
-### スポーンデッキ + 接続橋
+- 配置 Z: **-58.5**(縦線下端 Z=-58 の 0.5 m 先)
+- 配置 Y: **0**(壁の下端 Y=0、上端 Y=+2.0)
+- 配置 X: 各 Lane 中央(X = -6, -2, +2, +6)
+- 隙間幅: **1.5 m**(X 方向、カート幅 0.9 m + 両側 0.3 m)
+- 隙間高さ: **0.5 m**(Y=0 〜 Y=+0.5、歩行者がしゃがんでも通れない)
+- 壁の厚み(Z 方向): 0.2 m
+- 隙間中心位置: 各レーンの中央(X = -6, -2, +2, +6 / Y=+0.25 が隙間の中心)
+- Phase 1 終了時に小柄アバター + 匍匐姿勢で侵入できないことを VR HMD で確認
 
-エントリーエリア床の外にスポーン専用の小さなデッキを置き、橋でつなぐ構成。動線を一方向にし、Spawn 直後に背面からルールを読んでから前進してエントリーエリアに入る流れにする。
+### エントリーエリア(床上の領域)
 
-- スポーンデッキ床: Y=+3、**4 m × 4 m**(X 範囲 -2〜+2、Z 範囲 -9〜-5)
-- DefaultSpawn: **X=0, Y=+3.1, Z=-7**(デッキ中央)
-- ルール説明パネル: スポーンデッキの背面壁(Z=-9 側)、Spawn から振り返って読める
-- 接続橋: Z=-5 〜 Z=-4 の 1 m 区間、幅 **2 m**(X 範囲 -1〜+1)、Y=+3 平面で段差なし
-- 動線: Spawn (Z=-7) → 振り返ってルール確認 → 前進 → 橋 (Z=-5〜-4) → EntryArea (Z=-4〜+4) → 座席列 (Z=-2) → StartButton (Z=+3)
+- MainFloor の Z=+3〜+7 範囲を EntryArea として利用(物理的な追加床なし、MainFloor 上)
+- Seat 配置: (X = -6, -2, +2, +6 / **Y=0.5** / Z=+5) — 床に直接配置(着座マーカーの高さ程度)
+- StartButton: (X=0, Y=1.2, Z=+7) — 床に立つボタン
+- ResultDisplay: 詳細は Phase 5 で確定、StartButton 付近を想定
 
-> 旧仕様の `DefaultSpawn (X=0, Y=+3.1, Z=-6)` はエントリーエリア床 (Z=-4〜+4) の外側だったため、本セクションで「デッキ + 橋」として明示化し、Z=-7 に変更した。
+### スポーン位置
 
-### 賞品エリア
+縦置きレイアウト時の「スポーンデッキ + 接続橋」は不要(段差ゼロのため、別レベルの床を作る必要がない)。
 
-- 縦線下端 (Y=-60) の直下にエリアを並べる
-- 各 PrizeArea: **8 m × 8 m × H 4 m** の部屋
-- 配置 X: 各 Lane 中央(X = -6, -2, +2, +6)、PrizeArea 中心 = Lane 中心
-- 配置 Z: 0(あみだくじと同じ前後位置)
-- TeleportTarget は床上 0.1 m
+- DefaultSpawn: **(0, 0.1, +10)** — MainFloor の EntryArea より少し手前(プレイヤーが Spawn して前を向くと EntryArea と Seat 群が視界に入る配置)
+- RulesPanel: Spawn の背面壁として使う場合は X=0, Y=2, Z=+12 の高さ 2 m × 幅 4 m パネル、または EntryArea 脇の立て看板。詳細は Phase 1 で実機確認しながら決める
+
+### 賞品エリア(PrizeArea.prefab)
+
+- GoalBarrier(Z=-58.5)の先 5 m 程度後ろに 4 部屋並べる
+- 各 PrizeArea 中心: (X = -6, -2, +2, +6 / **Y=0** / **Z=-64**)
+- 部屋サイズ: **8 m × 4 m × 8 m**(X 幅 × Y 高さ × Z 奥行)
+- 床は MainFloor が下まで届いているのでそのまま流用、壁・天井のみを各部屋で構築
+- 各 PrizeArea の TeleportTarget: 部屋中心の床上 0.1 m(Y=0.1)
+- 隣接する PrizeArea 同士は壁で仕切る(他のレーンの賞品エリアが見えないように)
 
 ---
 
-## 8. ワールド俯瞰イメージ (簡易)
+## 8. ワールド俯瞰イメージ (TOP-DOWN VIEW、Y=0 平面)
 
 ```
-       SIDE / TOP HYBRID VIEW (horizontal=X、縦=Y下方向 + Z後方)
-
-                       Z=-9 (奥)
+                       +Z(EntryArea 側、奥)
                         ↑
-       ┌──────────────────────────────────────────┐
-       │            ┌────────────┐                 │
-       │            │ SpawnDeck  │  4m×4m, Y=+3     │
-       │            │  ● Spawn   │  Z=-9〜-5        │
-       │            │ (Z=-7)     │                  │
-       │            │ RulesPanel │                  │
-       │            └─────┬──────┘                  │
-       │                  │ Bridge 2m幅 × 1m,Y=+3   │
-       │            ┌─────┴────────────────┐        │
-       │            │     EntryArea         │  16m×8m, Y=+3
-       │            │ S0   S1   S2   S3     │  Z=-4〜+4
-       │            │ (X=-6,-2,+2,+6, Z=-2) │
-       │            │                       │
-       │            │      StartButton      │  Z=+3
-       │            │      ResultDisplay    │
-       │            └─┬─────┬─┬─────┬─┬─────┘
-       │              │     │ │     │ │     │ │     Y = 0 〜 -58
-  -X ──┤              │ L0  │ │ L1  │ │ L2  │ │ L3  あみだくじ本体
-       │              │     │ │     │ │     │ │     観戦者はここを走り回る
-       │              │     │ │     │ │     │ │
-       │              │     │ │     │ │     │ │
-       │              │═════│ │═════│ │═════│ │═════ Y = -58.5 GoalBarrier
-       │              │  ↓  │ │  ↓  │ │  ↓  │ │  ↓   (隙間からカートのみ通過)
-       │              └─────┘ └─────┘ └─────┘ └─────
-       │                │       │       │       │
-       │              ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
-       │              │ P0  │ │ P1  │ │ P2  │ │ P3  │ Y = -64〜-60
-       │              │     │ │     │ │     │ │     │ (賞品エリア)
-       │              └─────┘ └─────┘ └─────┘ └─────┘
-       │              X=-6    X=-2    X=+2    X=+6
-       └──────────────────────────────────────────┘
+       ┌────────────────────────────────────────────────┐
+       │                                                 │
+       │                  ● DefaultSpawn (0, 0.1, +10)   │ Z=+10
+       │              ┌─ RulesPanel ─┐                   │ Z=+12 付近
+       │                                                 │
+       │              ┌─ StartButton ─┐                  │ Z=+7
+       │                                                 │
+       │              S0    S1    S2    S3               │ Z=+5 (Seat 列)
+       │              X=-6  X=-2  X=+2  X=+6             │
+       │              │     │     │     │                │
+       │              ▼     ▼     ▼     ▼                │
+       │  ●Cart_0  ●Cart_1 ●Cart_2 ●Cart_3              │ Z=+2 (Start)
+       │              │     │     │     │                │
+       │            VLine VLine VLine VLine               │
+       │              │     │     │     │                │
+       │              │     ├ Bar ┤     │  (例)           │ Z=-3 (Seg 0)
+       │              │     │     │     │                │
+       │              ├ Bar ┤     │     │  (例)           │ Z=-8 (Seg 1)
+       │              │     │     │     │                │
+       │              │     │     │     │                │ ... (Seg 2-10)
+       │              │     │     │     │                │
+       │              │     │     ├ Bar ┤  (例)           │ Z=-53 (S10, 最終)
+       │              │     │     │     │                │ Z=-53〜-58.5: run-out zone 5.5m
+  -X ──┤            ═══════════════════════              │ Z=-58.5 GoalBarrier
+       │              ║     ║     ║     ║                │ (隙間 1.5×0.5 m)
+       │              ║     ║     ║     ║                │
+       │            ┌─P0─┐┌─P1─┐┌─P2─┐┌─P3─┐             │ Z=-60 〜 -68
+       │            │    ││    ││    ││    │             │ (賞品エリア 4 部屋)
+       │            └────┘└────┘└────┘└────┘             │
+       │                                                 │
+       └────────────────────────────────────────────────┘
+                       ↓
+                       -Z(PrizeArea 側、手前)
+
+  全プレイヤーは Y=0 床面を歩行。縦線・横線は床上面 Y=0.01 の高さで貼り付き、
+  歩行体験はフラット。カートはこの平面を Z+ から Z- に向かって走る。
+  観戦者は床上を自由に走り回ってカートを追いかける。
 ```
 
 ---
 
-## 9. Phase 1 着手時のチェックリスト
+## 9. マテリアル定義
+
+マテリアル一覧・採用シェーダー(`VRChat/Mobile/Standard Lite` および TMP `Mobile/Distance Field`)・
+レーン色定義・テクスチャ仕様・GPU Instancing 設定は別ファイルに分離した。
+
+→ [docs/material-set.md](./material-set.md) を参照。
+
+Phase 1 着手時点で **計 12 マテリアル**(バジェット 20 に対し +8 のヘッドルーム)で組み上げる方針。
+
+---
+
+## 10. Phase 1 着手時のチェックリスト
+
+各 Prefab の **Inspector 値・配置座標の確定リスト** は別ファイルに分離:
+→ [docs/phase1-prefab-checklist.md](./phase1-prefab-checklist.md)。
 
 Phase 1 のシーン組み立て時、以下の順序を推奨:
 
 1. `_World`、`_Managers`、`_Lighting` の organizational root を作成
-2. `VRCWorld` + VRC Scene Descriptor + DefaultSpawn を最初に置く(これがないと Build できない)
-3. **Tags and Layers で User22 (Cart)、User23 (GoalBarrier) を追加**
-4. **Physics 設定でコリジョンMatrix(§4.2)を設定**
+2. `VRCWorld` + VRC Scene Descriptor + DefaultSpawn (Z=+10) を最初に置く(これがないと Build できない)、Respawn Height Y=-1
+3. **Tags and Layers で User22 (Cart)、User23 (GoalBarrier) を追加**(Opus が ProjectSettings 編集済み、Unity GUI で目視確認)
+4. **Physics 設定でコリジョンMatrix(§4.2)を確認**(同上)
 5. 試しに空ワールドでアップロード疎通 (Phase 0 のおさらい)
-6. Lane.prefab を1つ作成(歩行可能な床つき)、Lane_0〜3 を配置してスケール感確認
-7. HorizontalBar.prefab を作成(歩行可能な床つき)、1セグメント分(3本)を仮配置 → OKなら全36本展開
-8. GoalBarrier.prefab を作成、4個配置して隙間サイズを VR HMD で実機確認(しゃがんで通れないか、カート想定サイズで通れるか)
-9. Cart.prefab、Seat.prefab はメッシュ未確定でもダミーキューブで Prefab 化 → Phase 2 で見た目を整える
-10. EntryArea、PrizeAreas を順番に大枠だけ配置
-11. ライティングは仮 (Skybox + Directional Light) のまま、Phase 9 でベイク
+6. `MainFloor` を Primitive Cube で 1 枚配置(Scale 18×0.2×80、Position 0,-0.1,-28)
+7. `VerticalLine.prefab` を Primitive Cube で作成、VLine_0〜3 を配置してスケール感確認
+8. `HorizontalBar.prefab` を Primitive Cube で作成、1セグメント分(3本)を仮配置 → OKなら全36本展開
+9. `GoalBarrier.prefab` を作成、4個配置して隙間サイズ(1.5×0.5 m)を VR HMD で実機確認(しゃがんで通れないか、カート想定 0.9 m で通れるか)
+10. `Cart.prefab`、`Seat.prefab` はダミーキューブで Prefab 化 → Phase 2 で見た目を整える
+11. EntryArea(Seat 4 つ + StartButton 仮)、PrizeAreas 4 部屋を順番に大枠だけ配置
+12. ライティングは仮 (Skybox + Directional Light) のまま、Phase 9 でベイク
 
-**重要**: 全マテリアルを Mobile/VRChat/Lightmapped 系で作成し、テクスチャは 1024×1024 以下に。Android対応のため、Phase 1 から制約を守ったほうが Phase 7 での手戻りが少ない。
+**重要**: 全マテリアルを `VRChat/Mobile/Standard Lite` 系で作成し、テクスチャは 1024×1024 以下に。Android対応のため、Phase 1 から制約を守ったほうが Phase 7 での手戻りが少ない(Phase 1 はテクスチャ無し・色のみのプレースホルダで構わない。詳細は [material-set.md](./material-set.md))。
 
 完了基準は SPEC.md / tasklist.md の Phase 1 セクション参照。

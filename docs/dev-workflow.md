@@ -299,7 +299,7 @@ v1.0 では Windows + Android の両プラットフォームに対応する([ADR
 - Build Platform は **Windows のまま** で開発
 - ClientSim と Build & Test で PC 環境を中心にイテレーション
 - ただし以下は Phase 1 から守る:
-  - マテリアルを `Mobile/VRChat/Lightmapped` 系で作成
+  - マテリアルを `VRChat/Mobile/Standard Lite` 系で作成(詳細は [material-set.md](./material-set.md))
   - テクスチャ 1024×1024 以下
   - 透明度マテリアル使用しない
   - GPU Instancing を全マテリアルで有効化
