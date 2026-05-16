@@ -135,3 +135,7 @@ node_modules/
 *.orig
 *.swp
 *.swo
+
+# Local-only docs (個人情報を含むスタートアッププロンプト等)----------------
+# `.local.md` 拡張子のドキュメントはコミット対象外
+*.local.md
