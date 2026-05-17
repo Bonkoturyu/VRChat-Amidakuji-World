@@ -176,7 +176,7 @@ Cart_X (Root, Layer: Cart)
 | Body Position(ローカル) | (0, 0.45, 0)(床上面 Y=0 → Body 下面 Y=0、上面 Y=0.9) |
 | Body Collider | **削除**(物理駆動ではなく Transform 駆動、Layer 分離で歩行者衝突を制御) |
 | Seat Position(ローカル) | (0, 0.9, 0) |
-| VRC_Station 設定 | `Disable Station Exit=true`, **`Player Mobility=Immobilize (For Vehicle)`**(または `Immobilize All`、`Mobile` は不可), `Player Enter Location=Seat Transform`, `Player Exit Location=Seat Transform` |
+| VRC_Station 設定 | **`Disable Station Exit=false`** ([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 改訂、Desktop は移動入力(WASD/スティック)・VR はトリガー(Use)で退出可=リタイア扱い), **`Player Mobility=Immobilize (For Vehicle)`**(または `Immobilize All`、`Mobile` は不可), `Player Enter Location=Seat Transform`, `Player Exit Location=Seat Transform` |
 
 ### 5.2 CartController.cs(Phase 2 で本実装、Phase 1 は空アタッチ)
 
@@ -384,3 +384,5 @@ VRCWorld (Empty + VRCSceneDescriptor)
 - 2026-05-16: PrizeArea Prefab Root の Rotation Y を **180°** に設定する旨を §7.1 に明記(Wall_S_Left/Right の隙間が +Z = GoalBarrier 側を向くようにする)
 - 2026-05-16: VRC_Station の Player Mobility を `Mobile` → **`Immobilize (For Vehicle)`** に修正(乗り物用、Mobile だと着座中もプレイヤーが WASD で動けてカート移動と競合する)
 - 2026-05-16: SDK 3.x には `VRC_Interact` コンポーネントが存在しないことを §6.1 / §8.4 に明記(Interact は UdonBehaviour 側の `Interact()` メソッドで実装)
+- 2026-05-17: §5.1 の VRC_Station 設定で `Disable Station Exit` を `true` → **`false`** に変更([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 改訂、Phase 1 実機確認で「Desktop でカートから降りられない」UX を改善するため、両プラットフォームで退出可 = リタイア扱いに統合)
+- 2026-05-17: Phase 1 実機確認で DefaultSpawn と Cart_0〜3 の rotation が +Z 向き(本来は -Z = ゴール方向を向くべき)になっていたため、シーンファイル直接編集で Y軸 180° に修正(checklist §5.3 / §8.2 の意図に整合)

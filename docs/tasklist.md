@@ -42,18 +42,21 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 
 ## Phase 2: カート単体走行 [5/18-5/20] [3日] ★山1
 
-- [ ] Cart Prefab 作成 (Visualモデル + Collider + VRC_Station)
-- [ ] VRC_Station 設定 (`disableStationExit`, `mobilityType=Mobile`, `Seated=true` 等)
-- [ ] **Layer 設定**: カートと歩行者の衝突分離(Cart レイヤー作成、PlayerLocal と分離)
+- [x] Cart Prefab 作成 (Visualモデル + Collider + VRC_Station) — Phase 1 で先行完了(2026-05-16)
+- [x] VRC_Station 設定 (`disableStationExit=false`, `PlayerMobility=Immobilize (For Vehicle)`, `Seated=true`) — Phase 1 で先行完了、2026-05-17 改訂([ADR-0007](./adr/0007-vrcstation-transform-cart.md))
+- [x] **Layer 設定**: カートと歩行者の衝突分離(Cart=User22 レイヤー作成、PlayerLocal と分離) — Phase 0/1 で完了
 - [ ] `CartController.cs` (UdonSharp) 実装
   - [ ] Waypoint配列を Inspector で設定
   - [ ] Update() で時刻ベース Lerp 補間
+  - [ ] **`InputJump` イベントハンドラ実装**: Desktop の Space キー / VR のジャンプボタンで `station.ExitStation(local)` 発火 → リタイア扱い([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 追記)
+  - [ ] `OnStationExited` で「ゴール到達による正常退出」と「ユーザー意思によるリタイア退出」を区別(`gameState == Running` かつ進行率 < 1.0 ならリタイア)
 - [ ] 着座すると固定経路を巡回するテスト
 - [ ] **走行中に歩行者がカートをすり抜けられるか確認**(Layer 設定の検証)
+- [ ] **3 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump 実装後)
 - [ ] ClientSim で確認
 - [ ] Build & Test で実際にHMDで着座テスト
 
-**完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない
+**完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。3 種の退出経路すべてがリタイア扱いで処理される
 
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 

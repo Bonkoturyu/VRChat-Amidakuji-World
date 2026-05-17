@@ -3,6 +3,7 @@
 - **Status**: Accepted
 - **Date**: 2026-05-15
 - **Revised**: 2026-05-15 (VRトリガー退出の制約・Station 設定値を明示)
+- **Revised**: 2026-05-17 (`disableStationExit` を **false** に変更。Desktop も移動入力(WASD/スティック)で退出可能とし、退出 = リタイアの扱いを VR/Desktop 共通で統一)
 
 ## Context
 
@@ -20,23 +21,54 @@
 
 | プロパティ | 値 | 理由 |
 |---|---|---|
-| `Player Mobility` | **Mobile** | カートTransformの動きにプレイヤーが追従する |
+| `Player Mobility` | **Immobilize (For Vehicle)** | カートTransform駆動中、プレイヤー入力で動かない(WASD/スティックでカート位置と競合させない) |
 | `Seated` | **true** | 着座IK適用、`pinned-down bug` 回避 |
 | `Can Use Station From Station` | false | 他席への席替え不可 |
-| `Disable Station Exit` | true | スティック移動による退出を防止 |
+| `Disable Station Exit` | **false** | Desktop は移動入力(WASD/スティック)、VR はトリガー(Use)で退出可。退出 = リタイアとして両プラットフォーム共通で扱う。なお VR のトリガー退出は VRChat 仕様で本設定の値に関わらず常時有効 |
 
-**重要な制約**: `Disable Station Exit = true` でも、**VR ユーザーは VR コントローラのトリガー(Use)で常に Station を退出できる**。これはユーザー安全のためのVRChat仕様で、ワールド側で無効化できない。
+**設計の意図**: VR コントローラのトリガー(Use)による退出は VRChat 仕様で常に有効であり、`Disable Station Exit = true` でも防げない。当初は Desktop のみ完走を強制する設計だったが、
 
-### 走行中の VR トリガー退出への対応
+- Desktop ユーザーから見ると「カートから降りられない」UX に不安感がある(Phase 1 実機確認で判明、2026-05-17)
+- VR/Desktop で挙動が一致せず、ルール説明が複雑化する
+
+ため、両プラットフォームで自由退出を許容し、退出 = リタイア扱いに統合する。
+
+### 走行中の退出への対応(VR/Desktop 共通)
 
 退出されたら以下の挙動とする:
 
 - そのカートは **空席のまま走行を継続**(seed由来の経路は変更しない)
 - ゴール到達してもテレポート発火対象がいないため、何も起こらない
-- 退出したプレイヤーは観戦エリア相当の位置に立つ(通常の Station 退出位置)
+- 退出したプレイヤーはカート Seat 位置に立つ(`stationExitPlayerLocation = Seat Transform`)。走行中カートから降りると物理的に MainFloor 上の進行中位置に下車する
 - `participantPlayerIds[laneIndex]` は `-1` に戻す(`OnStationExited` で検出)
 
-= リタイア扱い。ペナルティはなし、勝手に再エントリーは Idle 状態に戻るまで不可。
+= リタイア扱い。ペナルティはなし、再エントリーは Idle 状態に戻るまで不可。
+
+### 退出入力経路の一覧(Phase 2 実装)
+
+| プラットフォーム | 入力 | 実現方法 |
+|---|---|---|
+| VR | コントローラ Trigger (Use) | VRChat 標準仕様(常時有効、`disableStationExit` の値に無関係) |
+| Desktop | 移動入力 (WASD / 左スティック) | VRC_Station の `disableStationExit=false` 設定 |
+| Desktop | **Space キー** (ジャンプ) | UdonSharp で `InputJump(bool value, UdonInputEventArgs args)` をフックし、着座中であれば `station.ExitStation(localPlayer)` を呼ぶ |
+| VR | ジャンプボタン (A/B 等の Input mapping) | 同上(`InputJump` イベントは VR/Desktop 共通で発火) |
+
+`InputJump` を採用する理由は、VRChat Station デフォルトの Desktop 退出が「移動入力」のみで、初見ユーザーには発見しにくいため。Space キー(ジャンプ)はゲーム標準の「離脱」「キャンセル」相当の直感的入力として追加する。
+
+実装擬似コード(`CartController.cs`):
+
+```csharp
+public override void InputJump(bool value, UdonInputEventArgs args)
+{
+    if (!value) return; // 押下のみ反応、離した時は無視
+    var local = Networking.LocalPlayer;
+    if (local == null) return;
+    if (gameManager.participantPlayerIds[laneIndex] != local.playerId) return; // 自分が着座中の Cart のみ
+    station.ExitStation(local);
+}
+```
+
+注意: `InputJump` は地上歩行中も発火するが、`participantPlayerIds[laneIndex] != local.playerId` で短絡するため副作用なし。VRChat 標準のジャンプ動作は別系統で処理されるため、本ハンドラがイベントを受け取っても歩行中のジャンプは阻害しない。
 
 ## Consequences
 
@@ -48,8 +80,8 @@
 
 ### Negative
 
-- VR ユーザーの強制着座は不可能(VRトリガー退出は仕様)
-- Desktop ユーザーには WASD/スティック移動を試みても退出しない動きが返るが、これは意図通り
+- 走行中の自由退出を許容するため、参加者が途中で降りるとレースの体感は減る(設計トレードオフ。「降りられない閉塞感」よりは許容)
+- Desktop ユーザーは着座中に WASD/スティックを倒した時点で退出してしまう(=移動入力をした時点で「リタイアの意思表示」と解釈する設計)。誤操作リスクは中程度
 
 ### C案不採用理由
 
@@ -63,13 +95,15 @@
 ### 落とし穴の事前回避
 
 - `Immobilize For Vehicle` + `Seated: false` の組み合わせは「退出後にプレイヤーが移動できなくなる pinned-down bug」を引き起こす既知のバグがある → **採用しない**
-- Cart Prefab の Station 設定は上記表の通り `Mobile` + `Seated: true` で固定する
+- Cart Prefab の Station 設定は上記表の通り `Immobilize (For Vehicle)` + `Seated: true` で固定する
 
 ### 安全策
 
-- gameState が ResultDisplay に遷移したら `Disable Station Exit = false` に戻す(念のため)
 - ゴール時のテレポートは: ① Station から `ExitStation()` で降車 → ② プレイヤーに `TeleportTo` を発火、の順序
+- `OnStationExited` で「ゴール到達による正常退出」と「ユーザー意思によるリタイア退出」を区別する判定が必要(Phase 4 実装時、`gameState == Running` かつ `cart 進行率 < 1.0` ならリタイア扱い)
 
 ## 改訂履歴
 
 - 2026-05-15: `disableStationExit` でVRトリガー退出も防げる想定だったが、VR仕様により不可と判明。リタイア扱いとして許容する設計に変更
+- 2026-05-17: Phase 1 実機確認で Desktop ユーザーがカートから降りられない UX が不安感を生むことを確認。`disableStationExit` を **false** に変更し、Desktop も移動入力(WASD/スティック)で退出可能に(VRChat 仕様で Station Exit のトリガーは移動入力。ジャンプキーではない点に注意)。VR/Desktop 共通の「退出 = リタイア」扱いに統合。`Player Mobility` の値も初版の `Mobile` から `Immobilize (For Vehicle)` に修正(Mobile だと着座中も WASD で動けてカート移動と競合する、phase1-prefab-checklist.md §5.1 で既に修正済みの値に整合)
+- 2026-05-17 追記: 「移動入力での退出」は初見ユーザーに発見しにくいため、Phase 2 で `CartController.cs` に `InputJump` イベントハンドラを実装し、**Desktop の Space キー / VR のジャンプボタン**でもリタイア退出可能にする方針を追加(§退出入力経路の一覧 参照)

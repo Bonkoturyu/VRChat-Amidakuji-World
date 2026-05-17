@@ -162,7 +162,7 @@ MonoBehaviour:
   PlayerMobility: 1
   canUseStationFromStation: 1
   animatorController: {fileID: 0}
-  disableStationExit: 1
+  disableStationExit: 0
   seated: 1
   stationEnterPlayerLocation: {fileID: 4766412120149147599}
   stationExitPlayerLocation: {fileID: 4766412120149147599}
