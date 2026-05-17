@@ -259,17 +259,38 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 
 ### CartController (Cart.prefab Root)
 
+Phase 2 暫定と Phase 3 以降で Inspector フィールドが切り替わる(下記)。
+Phase 2 着手中の確定値は [tasklist.md](./tasklist.md) Phase 2 サブタスクが権威。
+
+**Phase 2 暫定** (CartController 単独実装、ローカル走行検証用):
+
 ```
 [Serializable Fields]
-- public int laneIndex            // 0-3
-- public Transform startMarker    // Start_N をドラッグ
-- public Transform goalMarker     // Goal_N をドラッグ
-- public Transform prizeTeleport  // PrizeArea_N の TeleportTarget をドラッグ
-- public GameManager gameManager  // _Managers/GameManager をドラッグ
-- public AmidakujiGenerator generator
+- public int laneIndex                  // 0-3
 - public float speed = 2.0f
-- public VRC_Station station      // 自分の子の Station 参照
+- public VRC_Station station            // 自分の子の Station 参照
+- public bool startOnEnter = true       // OnStationEntered で即走行開始
+- public bool lookAtMovingDirection = false  // 進行方向 LookRotation 適用フラグ
+- public Transform[] waypointMarkers    // Empty Marker を 4-5 点手配置し、Lerp 累積距離・
+                                         // 進行率ロジックを Phase 2 で検証する。
+                                         // Phase 3 で AmidakujiGenerator.ComputePath(seed, lane) に置換
 ```
+
+**Phase 3 以降** (GameManager / AmidakujiGenerator 統合後):
+
+```
+[Serializable Fields]
+- public int laneIndex                  // 0-3
+- public float speed = 2.0f
+- public VRC_Station station            // 自分の子の Station 参照
+- public GameManager gameManager        // _Managers/GameManager をドラッグ
+- public AmidakujiGenerator generator   // _Managers/AmidakujiGenerator をドラッグ
+```
+
+Phase 3 移行時に Phase 2 暫定の `startOnEnter / lookAtMovingDirection / waypointMarkers` を削除し、
+代わりに `gameManager / generator` を追加する。スタート位置・ゴール位置は Cart_N / GoalBarrier_N の
+Transform を直接参照する設計のため、`startMarker / goalMarker / prizeTeleport` フィールドは作らない
+(commit `00511e8` で StartMarkers/GoalMarkers Empty 配置自体を廃止済み)。
 
 ### SeatInteract (Seat.prefab Root)
 

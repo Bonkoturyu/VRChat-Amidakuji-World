@@ -57,6 +57,8 @@
 
 実装擬似コード(`CartController.cs`):
 
+> **Phase 2 (CartController 単独実装)** では GameManager が未実装のため、下記の `participantPlayerIds[]` 参照の代わりにローカル `_isLocalSeated` フラグで判定する(`if (!value || !_isLocalSeated) return;`)。`participantPlayerIds[]` 参照は GameManager 実装後の **Phase 4** で導入する。
+
 ```csharp
 public override void InputJump(bool value, UdonInputEventArgs args)
 {
@@ -107,3 +109,4 @@ public override void InputJump(bool value, UdonInputEventArgs args)
 - 2026-05-15: `disableStationExit` でVRトリガー退出も防げる想定だったが、VR仕様により不可と判明。リタイア扱いとして許容する設計に変更
 - 2026-05-17: Phase 1 実機確認で Desktop ユーザーがカートから降りられない UX が不安感を生むことを確認。`disableStationExit` を **false** に変更し、Desktop も移動入力(WASD/スティック)で退出可能に(VRChat 仕様で Station Exit のトリガーは移動入力。ジャンプキーではない点に注意)。VR/Desktop 共通の「退出 = リタイア」扱いに統合。`Player Mobility` の値も初版の `Mobile` から `Immobilize (For Vehicle)` に修正(Mobile だと着座中も WASD で動けてカート移動と競合する、phase1-prefab-checklist.md §5.1 で既に修正済みの値に整合)
 - 2026-05-17 追記: 「移動入力での退出」は初見ユーザーに発見しにくいため、Phase 2 で `CartController.cs` に `InputJump` イベントハンドラを実装し、**Desktop の Space キー / VR のジャンプボタン**でもリタイア退出可能にする方針を追加(§退出入力経路の一覧 参照)
+- 2026-05-17 追記2: §「退出入力経路の一覧」の擬似コードは Phase 4 以降前提(GameManager 連携時)。Phase 2 (CartController 単独実装) では `participantPlayerIds[]` 参照を `_isLocalSeated` フラグ判定に置き換える旨を擬似コード直前に明記

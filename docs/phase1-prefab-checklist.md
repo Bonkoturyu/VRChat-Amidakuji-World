@@ -180,16 +180,18 @@ Cart_X (Root, Layer: Cart)
 
 ### 5.2 CartController.cs(Phase 2 で本実装、Phase 1 は空アタッチ)
 
-| Inspector フィールド | 型 | Phase 1 時点 |
-|---|---|---|
-| `laneIndex` | int | 0..3(Cart_N の N) |
-| `startMarker` | Transform | (Phase 2 で設定) |
-| `goalMarker` | Transform | 同上 |
-| `prizeTeleport` | Transform | 同上 |
-| `gameManager` | GameManager | 同上 |
-| `generator` | AmidakujiGenerator | 同上 |
-| `speed` | float | 2.0 |
-| `station` | VRC_Station | 自身の子 Seat の Station |
+Phase 2 暫定と Phase 3 以降で Inspector フィールドが切り替わる(設計詳細は [scene-structure.md §6](./scene-structure.md))。スタート位置・ゴール位置は Cart_N / GoalBarrier_N の Transform を直接参照する設計のため、`startMarker / goalMarker / prizeTeleport` フィールドは作らない(commit `00511e8` で StartMarkers/GoalMarkers Empty 配置自体を廃止済み)。
+
+| Inspector フィールド | 型 | Phase | Phase 1 時点 |
+|---|---|---|---|
+| `laneIndex` | int | Common | 0..3(Cart_N の N) |
+| `speed` | float | Common | 2.0 |
+| `station` | VRC_Station | Common | 自身の子 Seat の Station |
+| `startOnEnter` | bool | Phase 2 暫定 | true |
+| `lookAtMovingDirection` | bool | Phase 2 暫定 | false |
+| `waypointMarkers` | Transform[] | Phase 2 暫定 | (Phase 2 着手時に Empty Marker を 4-5 点配置) |
+| `gameManager` | GameManager | Phase 3 以降 | (Phase 3 で追加) |
+| `generator` | AmidakujiGenerator | Phase 3 以降 | (Phase 3 で追加) |
 
 ### 5.3 シーン配置(Cart_0〜3)
 

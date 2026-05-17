@@ -52,16 +52,16 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
   - [ ] `Update()`: `_state==Running` のとき `Networking.CalculateServerDeltaTime` で時刻ベース Lerp、`transform.position` 更新
   - [ ] `lookAtMovingDirection==true` のとき `Quaternion.LookRotation(進行方向)` を適用(デフォルト OFF、速度 2.0 m/s で視点動が大きく酔いやすいため)
   - [ ] `OnStationEntered`: ローカルプレイヤーなら `_isLocalSeated = true` + `startOnEnter` 真なら `StartRace()`
-  - [ ] `OnStationExited`: `_isLocalSeated = false` + `HandleExit(player)`(Phase 2 では `_isExitingByGoal` 常に false なので必ずリタイア処理)
+  - [ ] `OnStationExited`: `_isLocalSeated = false` + `HandleExit(player)`(Phase 2 では `_isExitingByGoal` 常に false なので必ずリタイア処理)。`HandleExit` の具体動作は **`_state = Idle` + `transform.position` を `_waypoints[0]` (起点) に戻す**(1 回の Build & Test で複数回乗降テスト可能にするため)。Phase 4 で `participantPlayerIds[laneIndex] = -1` + 空席走行継続に置換
   - [ ] **`InputJump` イベントハンドラ**: `value && _isLocalSeated` なら `station.ExitStation(LocalPlayer)` → 結果 `OnStationExited` に流れリタイア処理([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 追記)
   - [ ] **Phase 2 は UdonSynced 変数 0 個**(同期は Phase 3 で GameManager 実装時に導入。Phase 2 はローカル単独走行のテストに集中)
 - [ ] 着座すると固定経路を巡回するテスト
 - [ ] **走行中に歩行者がカートをすり抜けられるか確認**(Layer 設定の検証)
-- [ ] **3 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump 実装後)
+- [ ] **4 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump)、④VR ジャンプボタン(A/B 等、InputJump 共通)
 - [ ] ClientSim で確認
 - [ ] Build & Test で実際にHMDで着座テスト
 
-**完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。3 種の退出経路すべてがリタイア扱いで処理される
+**完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。4 種の退出経路すべてがリタイア扱いで処理される
 
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 
