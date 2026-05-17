@@ -35,7 +35,7 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [x] DefaultSpawn 配置(Position (0, 0.1, +10))、Respawn Height Y=-1 — 2026-05-16
 - [x] エントリーエリア仮配置(MainFloor 上の Seats 4 つ + StartButton 仮 + RulesPanel 仮 + ResultDisplay 仮) — 2026-05-16
 - [x] 賞品エリア4ゾーン仮配置(Z=-64 の小部屋 4 つ、3.5m 幅で互いに 0.5m 隙間、PrizeArea_0〜3) — 2026-05-16
-- [ ] スケール感を VR HMD で実機確認(歩行体験フラットか、線の段差を感じないか、GoalBarrier 隙間を歩行者が通れないか) — 2026-05-17 予定
+- [x] スケール感を VR HMD で実機確認(歩行体験フラットか、線の段差を感じないか、GoalBarrier 隙間を歩行者が通れないか) — 2026-05-17 完了、結果は commit `f5b6fc8` で spawn/cart rotation + Station 退出方針に反映
 - [x] **マテリアルは初手から `VRChat/Mobile/Standard Lite` 系で組む**(Android対応のため。Phase 1 はテクスチャ無し・色のみのプレースホルダで OK。詳細は [material-set.md](./material-set.md)) — 2026-05-16 完了、11 個作成済み(M_UI_Display は Phase 5 で対応、`M_Post_Track` は `M_Line` にリネーム + 白に変更済み)
 
 **完了基準**: 平面床(Z=+12 〜 Z=-68)を端から端まで歩ける、あみだくじの線が床面に描かれて見える、GoalBarrier の向こうに歩行者は侵入できない、床外に出ると自動リスポーンされる
