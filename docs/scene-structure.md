@@ -19,23 +19,18 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 │   ├── SpawnPoints/
 │   │   └── DefaultSpawn          ← VRC Scene Descriptor 参照
 │   ├── Ground/                   ← 床(単一の大型 Cube)
-│   │   └── MainFloor             ← Scale (18, 0.2, 80), Position (0, -0.1, -28)
+│   │   └── MainFloor             ← Scale (16, 0.2, 80), Position (0, -0.1, -28)
 │   ├── AmidakujiLines/           ← あみだくじの線(床上面に貼り付く細い Cube)
 │   │   ├── VerticalLines/
 │   │   │   ├── VLine_0           ← X=-6, Cube Scale (0.2, 0.02, 60)
 │   │   │   ├── VLine_1           ← X=-2
 │   │   │   ├── VLine_2           ← X=+2
 │   │   │   └── VLine_3           ← X=+6
-│   │   ├── HorizontalBars/
-│   │   │   ├── Bar_L0_S00  (lane pair 0-1, position 0, Z=-3)
-│   │   │   ├── Bar_L0_S01  (Z=-8)
-│   │   │   ├── ... (全パターン事前配置、最大33個 = 11 段 × 3 ペア)
-│   │   │   └── Bar_L2_S10  (lane pair 2-3, position 10, Z=-53)
-│   │   ├── StartMarkers/
-│   │   │   ├── Start_0 ... Start_3
-│   │   │   └── (Empty GameObject, Transformのみ使用)
-│   │   └── GoalMarkers/
-│   │       └── Goal_0 ... Goal_3
+│   │   └── HorizontalBars/
+│   │       ├── Bar_L0_S00  (lane pair 0-1, position 0, Z=-3)
+│   │       ├── Bar_L0_S01  (Z=-8)
+│   │       ├── ... (全パターン事前配置、最大33個 = 11 段 × 3 ペア)
+│   │       └── Bar_L2_S10  (lane pair 2-3, position 10, Z=-53)
 │   ├── GoalBarriers/             ← カートだけ通れる物理壁
 │   │   ├── Barrier_0  (Prefab Instance, laneIndex=0)
 │   │   ├── Barrier_1
@@ -126,7 +121,8 @@ Cart_X (GameObject, Transform 位置 = 起点)  [Layer: Cart]
 
 - Root に `CartController.cs` (UdonBehaviour)
 - VRC_Station の `Player Mobility` = **Immobilize (For Vehicle)**(乗り物用、Mobile は着座中の WASD と競合するため不可)
-- VRC_Station の `Disable Station Exit` = true(VR ユーザーはトリガー退出は阻止できない、[ADR-0007](./adr/0007-vrcstation-transform-cart.md))
+- VRC_Station の `Disable Station Exit` = **false**([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 改訂。VR/Desktop 両プラットフォームで退出可 = リタイア扱いに統合)
+- Desktop の Space キー / VR ジャンプボタンでの退出は `CartController.InputJump` イベントハンドラで `station.ExitStation()` を呼ぶ実装(Phase 2)
 - **Cart レイヤー設定により、歩行者プレイヤーと衝突しない**
 
 ### 3.2 GoalBarrier.prefab
@@ -280,7 +276,7 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 ```
 - public int seatIndex
 - public GameManager gameManager
-- public Cart targetCart          // 紐づくカートへの参照(着座すると Cart の Station へ転送)
+- public CartController targetCart // 紐づくカートへの参照(着座すると Cart の Station へ転送)
 ```
 
 ### StartButton (シーン専用)
@@ -307,9 +303,11 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 
 ```
 - public GameObject[] horizontalBars  // 全パターンを1次元配列で保持
-                                       // [lane * SEGMENT_COUNT + segment] でアクセス
-- public int LANE_COUNT = 4
-- public int SEGMENT_COUNT = 12
+                                       // [lanePair * SEGMENT_COUNT + segment] でアクセス
+                                       // (lanePair = 0..2、3 ペア × 11 段 = 33 個)
+- public int LANE_COUNT = 4           // 縦線本数
+- public int LANE_PAIR_COUNT = 3      // 横線が架けられる隣接ペア数 (= LANE_COUNT - 1)
+- public int SEGMENT_COUNT = 11       // 横線位置の段数 (Z=-3..-53, 5m 間隔)
 ```
 
 ---
@@ -321,8 +319,8 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 ### MainFloor(全プレイヤーが歩く床)
 
 - 単一の Primitive Cube
-- Scale: **(18, 0.2, 80)** (X 幅 18 m、厚み 0.2 m、Z 奥行 80 m)
-- Position: **(0, -0.1, -28)** → 上面 Y=0、X 範囲 -9〜+9、Z 範囲 -68〜+12
+- Scale: **(16, 0.2, 80)** (X 幅 16 m、厚み 0.2 m、Z 奥行 80 m。GoalBarrier 4 連の全幅 16 m と整合)
+- Position: **(0, -0.1, -28)** → 上面 Y=0、X 範囲 **-8〜+8**、Z 範囲 -68〜+12
 - Material: `M_Floor_Common`、Static フラグ All Static
 
 ### あみだくじ本体(縦線・横線)
@@ -330,7 +328,7 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 - 縦線本数: **4** ([ADR-0008](./adr/0008-4lane-scope-scalable-design.md))
 - 縦線間隔: **4.0 m** (X方向)、X = **-6, -2, +2, +6**
 - 縦線長さ: **60.0 m** (Z方向、EntryArea 側 Z=+2 → GoalBarrier 側 Z=-58)
-- セグメント長さ: 60 / 12 = **5.0 m**
+- 横線間隔: **5.0 m**(縦線 60 m を 12 区間に分割。内部境界の 11 箇所が横線位置 = `SEGMENT_COUNT`)
 - 縦線中心の Z 座標: **-28**(線の Z 範囲 +2 〜 -58 の中点)
 
 ### 縦線(VerticalLine.prefab)
@@ -364,25 +362,26 @@ Light Probe Group はプレイヤーが歩く床面範囲(X=-9〜+9, Z=-68〜+12
 ### エントリーエリア(床上の領域)
 
 - MainFloor の Z=+3〜+7 範囲を EntryArea として利用(物理的な追加床なし、MainFloor 上)
-- Seat 配置: (X = -6, -2, +2, +6 / **Y=0.5** / Z=+5) — 床に直接配置(着座マーカーの高さ程度)
+- Seat 配置: (X = -6, -2, +2, +6 / **Y=0** / Z=+5) — Seat Root の床貼り付き(子 Visual が Y=0.05 で着座マーカー高 0.1 m)
 - StartButton: (X=0, Y=1.2, Z=+7) — 床に立つボタン
 - ResultDisplay: 詳細は Phase 5 で確定、StartButton 付近を想定
 
 ### スポーン位置
 
-縦置きレイアウト時の「スポーンデッキ + 接続橋」は不要(段差ゼロのため、別レベルの床を作る必要がない)。
+平面水平レイアウトのため、スポーンデッキ + 接続橋は不要(段差ゼロのため、別レベルの床を作る必要がない、[ADR-0011](./adr/0011-flat-horizontal-layout.md))。
 
-- DefaultSpawn: **(0, 0.1, +10)** — MainFloor の EntryArea より少し手前(プレイヤーが Spawn して前を向くと EntryArea と Seat 群が視界に入る配置)
-- RulesPanel: Spawn の背面壁として使う場合は X=0, Y=2, Z=+12 の高さ 2 m × 幅 4 m パネル、または EntryArea 脇の立て看板。詳細は Phase 1 で実機確認しながら決める
+- DefaultSpawn: **(0, 0.1, +10)**、Rotation **Y=180°**(2026-05-17 修正)— MainFloor の EntryArea(Z=+5)より +Z 側に配置し、180° 回転で -Z 方向(EntryArea / Seat / Goal 側)を向く。プレイヤーの視線正面に Seat 群と縦線群が入る
+- RulesPanel: (0, 2, +12) に高さ 2 m × 幅 4 m パネル(DefaultSpawn の背後)。Phase 5 で TextMeshPro 化、Phase 1 は灰色立て看板
 
 ### 賞品エリア(PrizeArea.prefab)
 
-- GoalBarrier(Z=-58.5)の先 5 m 程度後ろに 4 部屋並べる
+- GoalBarrier(Z=-58.5)の先 1.5 m バッファ後に 4 部屋並べる(部屋手前壁 Z=-60、奥壁 Z=-68)
 - 各 PrizeArea 中心: (X = -6, -2, +2, +6 / **Y=0** / **Z=-64**)
-- 部屋サイズ: **8 m × 4 m × 8 m**(X 幅 × Y 高さ × Z 奥行)
+- 部屋サイズ: **3.5 m × 4 m × 8 m**(X 幅 × Y 高さ × Z 奥行、4 m レーン間隔で隣と 0.5 m 隙間)
+- Prefab Root の Rotation Y=180°(Wall_S_Left/Right の隙間が +Z = GoalBarrier 側を向くため)
 - 床は MainFloor が下まで届いているのでそのまま流用、壁・天井のみを各部屋で構築
 - 各 PrizeArea の TeleportTarget: 部屋中心の床上 0.1 m(Y=0.1)
-- 隣接する PrizeArea 同士は壁で仕切る(他のレーンの賞品エリアが見えないように)
+- 隣接する PrizeArea 同士は 0.5 m の物理ギャップと壁で仕切る(他のレーンの賞品エリアが見えないように)
 
 ---
 
@@ -457,7 +456,7 @@ Phase 1 のシーン組み立て時、以下の順序を推奨:
 5. 試しに空ワールドでアップロード疎通 (Phase 0 のおさらい)
 6. `MainFloor` を Primitive Cube で 1 枚配置(Scale 18×0.2×80、Position 0,-0.1,-28)
 7. `VerticalLine.prefab` を Primitive Cube で作成、VLine_0〜3 を配置してスケール感確認
-8. `HorizontalBar.prefab` を Primitive Cube で作成、1セグメント分(3本)を仮配置 → OKなら全36本展開
+8. `HorizontalBar.prefab` を Primitive Cube で作成、1段分(3本)を仮配置 → OKなら全33本(11 段 × 3 ペア)展開
 9. `GoalBarrier.prefab` を作成、4個配置して隙間サイズ(1.5×0.5 m)を VR HMD で実機確認(しゃがんで通れないか、カート想定 0.9 m で通れるか)
 10. `Cart.prefab`、`Seat.prefab` はダミーキューブで Prefab 化 → Phase 2 で見た目を整える
 11. EntryArea(Seat 4 つ + StartButton 仮)、PrizeAreas 4 部屋を順番に大枠だけ配置

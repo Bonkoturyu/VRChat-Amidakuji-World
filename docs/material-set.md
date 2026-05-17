@@ -141,7 +141,7 @@ m_EnableInstancingVariants: 1
 
 特に効果が大きいオブジェクト:
 
-- HorizontalBar: 最大 36 個が同じ `M_Line` を使うため Static Batching(動的 enable のため非対象)→ **GPU Instancing が事実上必須**
+- HorizontalBar: 最大 33 個が同じ `M_Line` を使うため Static Batching(動的 enable のため非対象)→ **GPU Instancing が事実上必須**
 - VerticalLine: 4 個が `M_Line` を共有(Static フラグありで Static Batching に乗る)
 - Cart: 4 個が `M_LaneColor_N` を 1 個ずつ使用(色違いなので GPU Instancing のバッチには乗らないが、命名統一のため有効化)
 
