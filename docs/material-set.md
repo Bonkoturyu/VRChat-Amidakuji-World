@@ -23,8 +23,11 @@ Phase 1 着手時点の v1.0 マテリアル定義。PC + Android クロスプ�
 | 10 | `M_Button_Active` | `VRChat/Mobile/Standard Lite` | 単色(緑 + Emission) | — | ✓ | StartButton 押下可状態 |
 | 11 | `M_Button_Inactive` | `VRChat/Mobile/Standard Lite` | 単色(灰) | — | ✓ | StartButton 無効状態 |
 | 12 | `M_UI_Display` | TextMeshPro `Mobile/Distance Field` | TMP Font Atlas | 1024 | ✓ | ResultDisplay / RulesPanel のテキスト面 |
+| 13 | `M_FX_Explosion_Fireball` | `VRChat/Mobile/Particles/Additive` | (Unity 既定 `Default-Particle`、Phase 8 で差し替え可) | 64(既定) | ✓ | ExplosionEffect.prefab の火球用 ParticleSystem |
+| 14 | `M_FX_Explosion_Smoke` | `VRChat/Mobile/Particles/Multiply` | (同上) | 64 | ✓ | ExplosionEffect.prefab の煙用(灰白色、Multiply で煤感補強) |
+| 15 | `M_FX_Confetti` | `VRChat/Mobile/Particles/Additive` | (同上) | 64 | ✓ | ConfettiEffect.prefab の紙片用、Color over Lifetime で多色化 |
 
-**合計 12 マテリアル**(バジェット 20 に対し +8 のヘッドルーム。Phase 5 の UI 追加・Phase 9 の装飾に充当)。
+**合計 15 マテリアル**(バジェット 20 に対し +5 のヘッドルーム。Phase 5 の UI 追加・Phase 9 の装飾に充当)。Phase 4 着手時 13〜15 を追加(`M_FX_*` 3 個、[ADR-0012](./adr/0012-goal-effect-randomized.md))。
 
 スカイボックスは Lighting Settings の Skybox Material として別管理。v1.0 は Unity 標準
 `Default-Skybox` (Procedural) を流用し、新規マテリアル定義は行わない(World パフォーマンスの
@@ -75,6 +78,15 @@ Signed Distance Field (SDF) は、各画素に「最も近い文字輪郭まで�
   - 漢字フルセットは Atlas 肥大化を招くため避ける
 - Atlas Render Mode は `SDFAA` を選択(`SDFAA_HINTED` は CPU 負荷高)
 - Atlas Resolution は 1024×1024、Padding 5 を基準
+
+### 2.3 `VRChat/Mobile/Particles/Additive` と `Multiply`(`M_FX_*` 3 個、Phase 4 で追加)
+
+[ADR-0012](./adr/0012-goal-effect-randomized.md) のゴール演出用パーティクル。
+
+- **`VRChat/Mobile/Particles/Additive`**: 加算合成。光・火・紙吹雪のように「明るい色を上乗せ」したい場合に使用。黒は出ない(加算では黒 = 何も足さない = 透明扱い)
+- **`VRChat/Mobile/Particles/Multiply`**: 乗算合成。背景を暗くする方向(煤・影)に使用。Quest の透明度マテリアル禁止制約下で「黒煙」の代替表現として限定使用
+- 両シェーダーとも `Soft Particles`(Z バッファ補間)は Quest で重いため OFF
+- パーティクルシステムの `Color over Lifetime` でフェードアウトを制御する運用が標準(マテリアル側 `_Color.a` に依存しない)
 
 ---
 
@@ -183,6 +195,9 @@ Phase 1 着手時点では、テクスチャ画像は用意せず **Main Color �
 | `M_LaneColor_3` | `#0000FF` | 青(Cart_3 ボディのみ) |
 | `M_Button_Active` | `#00CC00` | 緑、Emission は Phase 5 で検討 |
 | `M_Button_Inactive` | `#666666` | 暗めグレー |
+| `M_FX_Explosion_Fireball` | `#FF6600` | オレンジ(火球用、パーティクル `Color over Lifetime` で `#FFFF00 → #FF6600 → #AA1100` グラデ運用) — Phase 4 で追加 |
+| `M_FX_Explosion_Smoke` | `#DDDDDD` | 明るい灰(Multiply で背景を暗くする方向に作用、結果として煤感) — Phase 4 で追加 |
+| `M_FX_Confetti` | `#FFFFFF` | 白(パーティクル `Start Color` で `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC` のランダム多色運用) — Phase 4 で追加 |
 
 全マテリアル共通設定:
 
@@ -196,6 +211,7 @@ Phase 1 着手時点では、テクスチャ画像は用意せず **Main Color �
 
 ## 8. 改訂履歴
 
+- 2026-05-18: Phase 4 着手準備として **`M_FX_Explosion_Fireball` / `M_FX_Explosion_Smoke` / `M_FX_Confetti` の 3 マテリアルを追加**(計 15 個)。シェーダー §2.3 を Particles 系として追記、§7 にプレースホルダ色を追記([ADR-0012](./adr/0012-goal-effect-randomized.md))
 - 2026-05-16: 初版作成(Phase 1 着手に合わせて 12 マテリアル構成・レーン色 4 色を確定)
 - 2026-05-16: ベースシェーダーを `Mobile/VRChat/Lightmapped` → `VRChat/Mobile/Standard Lite` に変更。
   前者は `_Color` と `Enable GPU Instancing` を持たない最小シェーダーで、プレースホルダ色運用に不適と判明したため。

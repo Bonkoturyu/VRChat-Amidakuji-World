@@ -70,6 +70,20 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 **完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。4 種の退出経路すべてがリタイア扱いで処理される
 **完了状況 (2026-05-18)**: 着座・自動巡回・退出 4 種・停止カートすり抜け = ✅。走行中干渉は Phase 3 持ち越し(Phase 2 段階では他クライアントから走行が見えない設計のため検証不能)
 
+## 準備期間: ゴール演出 Prefab 制作 [5/19-5/20] [2日バッファ活用]
+
+Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根拠は [ADR-0012](./adr/0012-goal-effect-randomized.md)、確定値は [phase4-effect-prefab-checklist.md](./phase4-effect-prefab-checklist.md)。
+
+- [ ] **マテリアル 3 個追加**: `M_FX_Explosion_Fireball` / `M_FX_Explosion_Smoke` / `M_FX_Confetti` を作成([material-set.md §7](./material-set.md#7-phase-1-運用方針プレースホルダ色のみ))
+- [ ] **ExplosionEffect.prefab** 作成 — [phase4-effect-prefab-checklist.md §1](./phase4-effect-prefab-checklist.md#1-explosioneffectprefab) の Inspector 値どおり
+- [ ] **ConfettiEffect.prefab** 作成 — [phase4-effect-prefab-checklist.md §2](./phase4-effect-prefab-checklist.md#2-confettieffectprefab) の Inspector 値どおり
+- [ ] 既存 `PrizeArea.prefab` 4 部屋すべてにネスト Prefab として組込み — [phase4-effect-prefab-checklist.md §3](./phase4-effect-prefab-checklist.md#3-prizearea-prefab-への組み込み)
+- [ ] `_Managers/GameManager` 配下に `FinaleSharedAudio` (2D AudioSource) を配置 — [phase4-effect-prefab-checklist.md §4](./phase4-effect-prefab-checklist.md#4-gamemanager-直下-finalesharedaudioa-モード共通-se)
+- [ ] AudioClip は Phase 8 で差し替え予定、現状は空クリップ運用
+- [ ] ClientSim で見映え確認 — [phase4-effect-prefab-checklist.md §5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認)
+
+**完了基準**: [phase4-effect-prefab-checklist.md §7](./phase4-effect-prefab-checklist.md#7-phase-4-着手準備の完了基準) のチェックリストをすべて満たす
+
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 
 - [ ] `AmidakujiGenerator.cs` (UdonSharp) 実装
@@ -98,15 +112,31 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [ ] **ゴール手前バリアの最終形状調整**(カートだけ通って人は通れない物理サイズ検証)
 - [ ] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`
 - [ ] **観戦者がバリアを越えられないことを確認**
-- [ ] Build & Test で4台同時走行を確認
+- [ ] **ゴール演出の配線**([ADR-0012](./adr/0012-goal-effect-randomized.md))
+  - [ ] `GameManager.ComputeEffectAssignment(seed, N, E, C)` 実装 — Fisher-Yates、派生 RNG (`seed ^ 0x000BEEF`)
+  - [ ] Inspector フィールド追加: `explosionCount=1 / confettiCount=1 / simultaneousFinale=true / finaleCountdownSeconds=3.0 / prizeAreas[] / finaleSharedAudio`
+  - [ ] `PrizeArea.PlayEffect(int kind, bool withIndividualSound)` 実装(または GameManager から直接 SetActive + Play)
+  - [ ] `CartController.OnGoalReached(laneIndex)` から GameManager に通知、B モード時は即発火・A モード時は全カート集計
+  - [ ] A モード: 全員ゴール → `SendCustomEventDelayedSeconds(_FireFinale, finaleCountdownSeconds)` → 一斉発火 + `finaleSharedAudio.PlayOneShot` → 1.5 秒後 `EnterResultDisplay`
+  - [ ] B モード: 個別到達瞬間に該当レーンのみ `PlayEffect(kind, true)`、全員ゴール後 `EnterResultDisplay`
+- [ ] Build & Test で4台同時走行を確認(2クライアントで演出配置が一致することを目視)
+- [ ] A モード / B モード両方を切替えて動作確認
 
-**完了基準**: 4人 (またはMaster1人+残ダミー) で同時にゴールまで走り、各自テレポートされる。非参加者は賞品エリアに入れない
+**完了基準**: 4人 (またはMaster1人+残ダミー) で同時にゴールまで走り、各自テレポートされる。非参加者は賞品エリアに入れない。爆発・紙吹雪が seed 由来でランダムに配置され、2クライアント間で同じ配置になる
 
 ## Phase 5: ゲームフロー UI [5/26] [1日]
 
 - [ ] ステートマシン実装 (Idle/Countdown/Running/ResultDisplay)
 - [ ] スタートボタン: Master判定、参加者0人時の無効化
 - [ ] カウントダウン演出 (3-2-1)
+- [ ] **A モード時の FinaleCountdown UI** を Countdown UI に統合(同じ 3-2-1 表示機構を Running 末尾でも再利用、独立ステートにはしない)
+- [ ] **演出モード切替トグル UI** をスタートボタン付近に配置(SPEC §7.3 / [ADR-0012](./adr/0012-goal-effect-randomized.md))
+  - [ ] Master 限定 + `gameState==Idle` 時のみ反応、それ以外はグレーアウト
+  - [ ] 押下で `gameManager.simultaneousFinale` を反転
+- [ ] **Player Persistence による永続化**(同一人物の再 Master 時に B モード設定を復元)
+  - [ ] トグル操作時に `PlayerData.SetBool("amidakuji.simultaneousFinale", value)` を呼ぶ
+  - [ ] `OnPlayerRestored(VRCPlayerApi player)` で `player.isLocal && player.isMaster` のとき復元 + `RequestSerialization` で他クライアントに伝播
+  - [ ] **着手時に VRChat Creators Hub で `PlayerData` API の最新シグネチャを再確認**(2024 SDK 機能のため名称変動の可能性)
 - [ ] 結果表示掲示(エントリーエリアの掲示UI、「席n → ゴールm」)
 - [ ] 着座制御 (Idle中のみ可)
 - [ ] ResultDisplay → Idle 自動遷移 (10秒)
@@ -117,6 +147,10 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 
 - [ ] Late Joiner テスト: Idle中・Running中・ResultDisplay中それぞれで途中参加
 - [ ] Master交代テスト: 走行中にMasterが退出
+- [ ] **Player Persistence 動作テスト**(Phase 5 で実装した B モード永続化、[ADR-0012](./adr/0012-goal-effect-randomized.md))
+  - [ ] 同じ人が Master として B モードに切替 → ワールド退出 → 再入場時に B が復元される
+  - [ ] 別の人が Master として入場 → Inspector 既定値(A モード)が採用される
+  - [ ] Master 交代時、新 Master の Persistence 値があれば適用される
 - [ ] 全員退出テスト
 - [ ] 着座中の人がインスタンスを抜けた場合
 - [ ] VRトリガーで走行中に退出した場合のリタイア処理
@@ -143,6 +177,11 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
   - [ ] 着座 → カート走行 → ゴールテレポート
   - [ ] 観戦者として走り回って追いかける(物理FPSが体験に十分か)
   - [ ] ゴール手前バリア突破不可
+  - [ ] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))
+    - [ ] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか
+    - [ ] 発火時の FPS 低下が 60 FPS を下回らないか、必要なら粒子数を削減
+    - [ ] A モード / B モードの体感差を比較、既定モードを最終決定
+    - [ ] 個別爆発音・紙吹雪音の 3D 音量(Max Distance)を MainFloor から自然に聴こえる値に調整
   - [ ] Late Joiner: Quest からPC instance への参加
   - [ ] PC instance への Quest 参加 + 逆方向
 - [ ] パフォーマンス問題があれば追加最適化

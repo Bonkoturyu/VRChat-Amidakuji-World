@@ -18,9 +18,13 @@ World Scene
 ├── EntryArea
 │   ├── Seats[0..3]                            ← 着座Interact
 │   ├── StartButton (UdonBehaviour)            ← Master限定
+│   ├── SimultaneousFinaleToggle (UdonBeh.)    ← Master限定、A/Bモード切替(Phase 5)
 │   └── ResultDisplay (Worldspace UI)          ← 結果掲示
 ├── GoalBarriers[0..3]                         ← 各レーン下端の物理メッシュバリア
 └── PrizeAreas[0..3]                           ← ゴール後テレポート先
+    ├── TeleportTarget                         ←   テレポート着地点(固定)
+    ├── ExplosionEffect (inactive)             ←   爆発演出(ハズレ扱い)
+    └── ConfettiEffect  (inactive)             ←   紙吹雪演出(祝砲扱い)
 ```
 
 シーンのHierarchy詳細とPrefab分割は [scene-structure.md](./scene-structure.md) を参照。
@@ -71,6 +75,9 @@ AmidakujiGenerator.Rebuild(seed)
 CartController[n].ComputePath(seed, n)
    └─ Waypoint[] を算出して保持
    │
+GameManager.ComputeEffectAssignment(seed, N, E, C)
+   └─ _effectKinds[N] を算出(各クライアント独立、結果は seed で一致)
+   │
    ▼  (raceStartTime 到達まで待機)
    ▼
 [各クライアント] Update()
@@ -88,6 +95,20 @@ CartController[n].ComputePath(seed, n)
 - スタートボタンからのコール受付
 - カート群への状態通知
 - Late Joiner時の状態復元 (`OnDeserialization`)
+- **ゴール演出の配置算出と発火制御**([ADR-0012](./adr/0012-goal-effect-randomized.md)、[SPEC.md §8.3](./SPEC.md#83-ゴール演出))
+  - `seed` から `ComputeEffectAssignment(seed, N, explosionCount, confettiCount)` で各レーンの演出種別を決定(同期不要、各クライアントが同じ結果に収束)
+  - `simultaneousFinale` モードに応じて A: 一斉発火カウントダウン / B: 個別到達時即発火 を切替
+  - 一斉発火時の共通 SE 再生(`finaleSharedAudio.PlayOneShot`)
+- **Player Persistence による Master 設定の永続化**([ADR-0012 §7](./adr/0012-goal-effect-randomized.md))
+  - `OnPlayerRestored(VRCPlayerApi player)` で `player.isLocal && player.isMaster` のとき `PlayerData.TryGetBool("amidakuji.simultaneousFinale", out value)` を呼び `simultaneousFinale` を上書き → `RequestSerialization` で他クライアントに伝播
+  - `SimultaneousFinaleToggle` 操作時に `PlayerData.SetBool` で保存
+
+### SimultaneousFinaleToggle(Phase 5)
+
+- VRC_Interact 受け取り
+- `Networking.IsMaster` + `gameState == Idle` のときのみ反応(それ以外はグレーアウト)
+- 押下で `GameManager.simultaneousFinale` を反転 + `PlayerData.SetBool` で永続化
+- 詳細は [ADR-0012 §7](./adr/0012-goal-effect-randomized.md)
 
 ### AmidakujiGenerator
 
@@ -102,7 +123,19 @@ CartController[n].ComputePath(seed, n)
 - gameState変化時にWaypoint配列を再計算
 - Running中、`CalculateServerDeltaTime` ベースで `transform.position` を補間
 - ゴール到達時、座っているプレイヤーを賞品エリアに `TeleportTo`
+- ゴール到達時、`GameManager.NotifyCartGoaled(laneIndex)` を呼んで演出制御に橋渡し([ADR-0012](./adr/0012-goal-effect-randomized.md))
 - 走行中の `OnStationExited` 検出でリタイア処理([ADR-0007](./adr/0007-vrcstation-transform-cart.md))
+
+### PrizeArea
+
+- テレポート着地点(`TeleportTarget` Transform)を保持(固定座標、[SPEC.md §8.2](./SPEC.md#82-ゴール手前バリア))
+- 爆発・紙吹雪の演出 GameObject を inactive 状態で抱える
+- `PlayEffect(int kind, bool withIndividualSound)` API
+  - `kind == 1` (爆発): `ExplosionEffect.SetActive(true)` + `ParticleSystem.Play()` + 個別 SE
+  - `kind == 2` (紙吹雪): `ConfettiEffect.SetActive(true)` + `ParticleSystem.Play()` + 個別 SE
+  - `kind == 0` (無演出): 何もしない
+  - `withIndividualSound == false` の場合は SE をスキップ(A モードで共通 SE と重ねないため)
+- 演出種別の決定は GameManager 側に閉じる(PrizeArea は受動側)
 
 ### StartButton
 
@@ -204,4 +237,6 @@ double elapsed = Networking.CalculateServerDeltaTime(now, raceStartTime);
 - テクスチャ 1024×1024 を上限
 - GPU Instancing 全マテリアルで有効化
 - Realtime Light なし、全 Baked
+- **パーティクル: 1 ゴールあたり粒子 < 80 を目安**(爆発 < 70、紙吹雪 < 150 の中で調整、同時発火は最大 2 ゴール想定。[ADR-0012](./adr/0012-goal-effect-randomized.md))
+- パーティクルシェーダーは `VRChat/Mobile/Particles/Additive` を基本、Multiply は限定使用(黒煙の代替表現として煤感が必要なときのみ)
 - 詳細制約は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) と CLAUDE.md パフォーマンスバジェット参照
