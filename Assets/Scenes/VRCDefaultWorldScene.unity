@@ -2071,6 +2071,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cart_2
       objectReference: {fileID: 0}
+    - target: {fileID: 6200990334556001644, guid: 97b7d48855b37554eb9876fb55096689,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6954665578981298121, guid: 97b7d48855b37554eb9876fb55096689,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -3451,6 +3456,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cart_3
       objectReference: {fileID: 0}
+    - target: {fileID: 6200990334556001644, guid: 97b7d48855b37554eb9876fb55096689,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6954665578981298121, guid: 97b7d48855b37554eb9876fb55096689,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -4812,6 +4822,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Cart_1
       objectReference: {fileID: 0}
+    - target: {fileID: 6200990334556001644, guid: 97b7d48855b37554eb9876fb55096689,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6954665578981298121, guid: 97b7d48855b37554eb9876fb55096689,
         type: 3}
       propertyPath: serializationData.Prefab
@@ -5801,15 +5816,12 @@ MonoBehaviour:
   useAssignedLayers: 0
   DynamicPrefabs: []
   DynamicMaterials:
-  - {fileID: 2100000, guid: 3322c78aec12edb42abcdc61e13ebd70, type: 2}
-  - {fileID: 2100000, guid: 7d97feeec5864ed408d93738eb6327ec, type: 2}
-  - {fileID: 2100000, guid: 257231e330b2a25469dc6f1a1004afe9, type: 2}
   - {fileID: 2100000, guid: aeece366d9043ea44bc4693fcc63aaad, type: 2}
+  - {fileID: 2100000, guid: 7d97feeec5864ed408d93738eb6327ec, type: 2}
+  - {fileID: 2100000, guid: 3322c78aec12edb42abcdc61e13ebd70, type: 2}
   - {fileID: 2100000, guid: 2644ef3bbf43f0c43914f021e45d1bf3, type: 2}
-  - {fileID: 2100000, guid: 425392b591d361146a31090247416b54, type: 2}
-  - {fileID: 2100000, guid: 86485e3274e5968488da94d8fd9f0e07, type: 2}
-  - {fileID: 2100000, guid: 47be2bba149bb0442a8301f9440baf12, type: 2}
   - {fileID: 2100000, guid: daee414ae47973e40891898d958e68b7, type: 2}
+  - {fileID: 2100000, guid: 425392b591d361146a31090247416b54, type: 2}
   LightMapsNear: []
   LightMapsFar: []
   LightMode: 0

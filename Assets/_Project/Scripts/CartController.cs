@@ -109,6 +109,17 @@ public class CartController : UdonSharpBehaviour
         }
     }
 
+    // ADR-0007: VRC_Station と UdonBehaviour が同じ GameObject に同居する構成では、
+    // VRC_Station 自前の Use 表示は出ない(VRChat 仕様で UdonBehaviour 側の Interactable が優先される)。
+    // UdonBehaviour に Interact() を実装し、内部で UseStation() を明示的に呼ぶ必要がある。
+    public override void Interact()
+    {
+        if (station == null) return;
+        var local = Networking.LocalPlayer;
+        if (local == null) return;
+        station.UseStation(local);
+    }
+
     public override void OnStationEntered(VRCPlayerApi player)
     {
         if (player == null || !player.isLocal) return;

@@ -4,6 +4,7 @@
 - **Date**: 2026-05-15
 - **Revised**: 2026-05-15 (VRトリガー退出の制約・Station 設定値を明示)
 - **Revised**: 2026-05-17 (`disableStationExit` を **false** に変更。Desktop も移動入力(WASD/スティック)で退出可能とし、退出 = リタイアの扱いを VR/Desktop 共通で統一)
+- **Revised**: 2026-05-18 (UdonBehaviour 同居構成での `Interact()` / `UseStation()` 実装義務を明文化。Phase 2 アクティブブロッカーの真因に対応)
 
 ## Context
 
@@ -32,6 +33,28 @@
 - VR/Desktop で挙動が一致せず、ルール説明が複雑化する
 
 ため、両プラットフォームで自由退出を許容し、退出 = リタイア扱いに統合する。
+
+### Interaction(Use 表示・着座)経路
+
+VRC_Station と UdonBehaviour が **同じ GameObject に同居** する構成(Cart Root に両方配置)では、**VRC_Station 自前の Use 表示は出ない**。VRChat の interaction 仕様で UdonBehaviour 側の Interactable が優先されるためであり、UdonBehaviour に `Interact()` メソッドが定義されていないと Use テキスト自体が表示されない。
+
+この場合は UdonSharp 側で `Interact()` を実装し、内部で `VRCStation.UseStation(VRCPlayerApi)` を明示的に呼ぶ必要がある。
+
+```csharp
+public override void Interact()
+{
+    if (station == null) return;
+    var local = Networking.LocalPlayer;
+    if (local == null) return;
+    station.UseStation(local);
+}
+```
+
+実装上の要点:
+
+- UdonBehaviour の `interactText` フィールド(デフォルト `"Use"`)が表示テキストになる
+- `proximity` は UdonBehaviour 側の値が使われる(VRC_Station 側の proximity ではない)
+- VRC_Station を別 GameObject(例: Seat 子)に分離する代替案もあるが、その場合は `OnStationEntered` / `OnStationExited` を UdonBehaviour で受けるためのフォワード経路を別途用意する必要があるため、本プロジェクトでは **同居 + `Interact()` 実装** を採用する
 
 ### 走行中の退出への対応(VR/Desktop 共通)
 
@@ -110,3 +133,4 @@ public override void InputJump(bool value, UdonInputEventArgs args)
 - 2026-05-17: Phase 1 実機確認で Desktop ユーザーがカートから降りられない UX が不安感を生むことを確認。`disableStationExit` を **false** に変更し、Desktop も移動入力(WASD/スティック)で退出可能に(VRChat 仕様で Station Exit のトリガーは移動入力。ジャンプキーではない点に注意)。VR/Desktop 共通の「退出 = リタイア」扱いに統合。`Player Mobility` の値も初版の `Mobile` から `Immobilize (For Vehicle)` に修正(Mobile だと着座中も WASD で動けてカート移動と競合する、phase1-prefab-checklist.md §5.1 で既に修正済みの値に整合)
 - 2026-05-17 追記: 「移動入力での退出」は初見ユーザーに発見しにくいため、Phase 2 で `CartController.cs` に `InputJump` イベントハンドラを実装し、**Desktop の Space キー / VR のジャンプボタン**でもリタイア退出可能にする方針を追加(§退出入力経路の一覧 参照)
 - 2026-05-17 追記2: §「退出入力経路の一覧」の擬似コードは Phase 4 以降前提(GameManager 連携時)。Phase 2 (CartController 単独実装) では `participantPlayerIds[]` 参照を `_isLocalSeated` フラグ判定に置き換える旨を擬似コード直前に明記
+- 2026-05-18: Phase 2 Build & Test で Cart に対し Use テキスト自体が表示されない問題が発生。原因は **VRC_Station と UdonBehaviour が同じ GameObject に同居する構成では UdonBehaviour 側の Interactable が優先され、`Interact()` 未実装だと Use 表示が出ない** という VRChat 仕様。`CartController.Interact()` で `station.UseStation(LocalPlayer)` を呼ぶ実装に修正し解消。§「Interaction(Use 表示・着座)経路」を新設し、設計を明文化(Phase 1 時点では Station が Seat 子で UdonBehaviour と別 GameObject だったため発生していなかった。`b8c7103` で Station を Cart Root に移したことで顕在化)

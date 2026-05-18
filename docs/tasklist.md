@@ -56,12 +56,12 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
   - [x] **`InputJump` イベントハンドラ**: `value && _isLocalSeated` なら `station.ExitStation(LocalPlayer)` → 結果 `OnStationExited` に流れリタイア処理([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 追記)
   - [x] **Phase 2 は UdonSynced 変数 0 個**(同期は Phase 3 で GameManager 実装時に導入。Phase 2 はローカル単独走行のテストに集中)
 - [x] **Cart Prefab 構造再編** — commit `b8c7103`: VRC_Station を Seat 子 → Cart Root に移動(`OnStationEntered` 受信のため)、Cart Root に Box Collider(IsTrigger=true)追加、Cart Root と Seat の Layer を Default に変更、`canUseStationFromStation=false` に修正、`_World/WaypointMarkers/Cart0Path/WP_0〜4` を Cart_0 にアサイン
-- [ ] **🔴 Phase 2 アクティブブロッカー: Use interaction が実 VRChat ビルドで発火しない問題の解消** — Cart Prefab の Visual / Body は依然 Layer=User22、Cart Root + Seat の二重 IsTrigger Collider 構成と相まって着座インタラクションが拾われない。Cart Layer (User22) 戦略の見直しが必要(2026-05-17 commit `b8c7103` の本文より引き継ぎ)
-- [ ] 着座すると固定経路を巡回するテスト
+- [x] **Use interaction 発火問題の解消** — 2026-05-18: 真因は **VRC_Station と UdonBehaviour 同居構成では `Interact()` 未実装だと Use 表示が出ない** という VRChat 仕様([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 改訂)。`CartController.Interact()` で `station.UseStation(LocalPlayer)` を呼ぶ実装に修正し解消。当初仮説の「Cart Layer (User22) 戦略起因」は誤り(Visual/Body は Collider を持たないため interaction Raycast に影響しない)
+- [x] 着座すると固定経路を巡回するテスト — 2026-05-18 Build & Test で wp[0] (-6,0,2) → wp[last] (-6,0,-58.5) を totalDuration=32.6s で完走確認
 - [ ] **走行中に歩行者がカートをすり抜けられるか確認**(Layer 設定の検証)
 - [ ] **4 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump)、④VR ジャンプボタン(A/B 等、InputJump 共通)
-- [ ] ClientSim で確認
-- [ ] Build & Test で実際にHMDで着座テスト
+- [ ] ClientSim で確認(Build & Test と挙動差あり: ClientSim では現状 Use 発火しない。Phase 2 完了基準には含めず別途調査)
+- [x] Build & Test で実際にHMDで着座テスト — 2026-05-18 完了(着座 → 走行 → ゴール到達まで観察、`output_log_2026-05-18_17-20-21.txt`)
 
 **完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。4 種の退出経路すべてがリタイア扱いで処理される
 
