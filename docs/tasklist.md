@@ -40,7 +40,7 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 
 **完了基準**: 平面床(Z=+12 〜 Z=-68)を端から端まで歩ける、あみだくじの線が床面に描かれて見える、GoalBarrier の向こうに歩行者は侵入できない、床外に出ると自動リスポーンされる
 
-## Phase 2: カート単体走行 [5/18-5/20] [3日] ★山1
+## Phase 2: カート単体走行 [5/18-5/20] [3日] ★山1 ✅ 完了 (2026-05-18)
 
 - [x] Cart Prefab 作成 (Visualモデル + Collider + VRC_Station) — Phase 1 で先行完了(2026-05-16)
 - [x] VRC_Station 設定 (`disableStationExit=false`, `PlayerMobility=Immobilize (For Vehicle)`, `Seated=true`) — Phase 1 で先行完了、2026-05-17 改訂([ADR-0007](./adr/0007-vrcstation-transform-cart.md))
@@ -58,12 +58,17 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [x] **Cart Prefab 構造再編** — commit `b8c7103`: VRC_Station を Seat 子 → Cart Root に移動(`OnStationEntered` 受信のため)、Cart Root に Box Collider(IsTrigger=true)追加、Cart Root と Seat の Layer を Default に変更、`canUseStationFromStation=false` に修正、`_World/WaypointMarkers/Cart0Path/WP_0〜4` を Cart_0 にアサイン
 - [x] **Use interaction 発火問題の解消** — 2026-05-18: 真因は **VRC_Station と UdonBehaviour 同居構成では `Interact()` 未実装だと Use 表示が出ない** という VRChat 仕様([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 改訂)。`CartController.Interact()` で `station.UseStation(LocalPlayer)` を呼ぶ実装に修正し解消。当初仮説の「Cart Layer (User22) 戦略起因」は誤り(Visual/Body は Collider を持たないため interaction Raycast に影響しない)
 - [x] 着座すると固定経路を巡回するテスト — 2026-05-18 Build & Test で wp[0] (-6,0,2) → wp[last] (-6,0,-58.5) を totalDuration=32.6s で完走確認
-- [ ] **走行中に歩行者がカートをすり抜けられるか確認**(Layer 設定の検証)
-- [ ] **4 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump)、④VR ジャンプボタン(A/B 等、InputJump 共通)
-- [ ] ClientSim で確認(Build & Test と挙動差あり: ClientSim では現状 Use 発火しない。Phase 2 完了基準には含めず別途調査)
+- [x] **歩行者がカートをすり抜けられるか確認**(Layer 設定の検証) — 2026-05-18 2クライアント Build & Test で **停止カート** に対するすり抜けは ✅(Cart Root IsTrigger=true + Visual/Body Collider 無しの設計が機能)。**走行中の干渉**確認は Phase 2 段階では UdonSynced 未実装で他クライアントから走行が見えないため不可、Phase 3 (seed 同期実装後) で正式確認
+- [x] **4 種の退出経路すべてが動作することを確認** — 2026-05-18 完了:
+  - ①VR トリガー: ✅ Build & Test (HMD)
+  - ②Desktop 移動入力 (WASD/スティック): ✅ Build & Test (`output_log_2026-05-18_17-20-21.txt` の OnStationExited 17:21:40 / 17:21:44)
+  - ③Desktop Space キー (InputJump): ✅ Build & Test
+  - ④VR ジャンプボタン (InputJump): ✅ Build & Test (HMD)
+- [x] ClientSim で確認 — 2026-05-18 完了: 当初発火しなかった原因は同一(`Interact()` 未実装)、本ブロッカー解消と同時解決。着座 / 走行 / WASD 退出 / Jump 退出すべて動作確認
 - [x] Build & Test で実際にHMDで着座テスト — 2026-05-18 完了(着座 → 走行 → ゴール到達まで観察、`output_log_2026-05-18_17-20-21.txt`)
 
 **完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。4 種の退出経路すべてがリタイア扱いで処理される
+**完了状況 (2026-05-18)**: 着座・自動巡回・退出 4 種・停止カートすり抜け = ✅。走行中干渉は Phase 3 持ち越し(Phase 2 段階では他クライアントから走行が見えない設計のため検証不能)
 
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 
@@ -79,6 +84,7 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [ ] スタートボタン (仮) を実装
 - [ ] Build & Test (2クライアント) で同じ横線配置・同じ経路が見えるか確認
 - [ ] `CalculateServerDeltaTime` を使った時刻計算の動作確認
+- [ ] **走行中の歩行者すり抜け確認**(Phase 2 から引き継ぎ)— 2クライアント同期で他クライアントからもカート走行が見える状態になったら、走行中カートに地上の観戦者を突っ込ませて干渉なく通り抜けるか目視確認
 
 **完了基準**: Master側でスタート → 別クライアントから見ても同じあみだくじ・同じ経路でカートが走る
 
