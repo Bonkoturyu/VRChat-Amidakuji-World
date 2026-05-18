@@ -136,6 +136,11 @@ node_modules/
 *.swp
 *.swo
 
+# ClientSim ----------------------------------------------------------------
+# ClientSim のローカルテストデータ (PlayerData / PlayerObjects)。
+# 個人のテストプレイ状態を含むため、コミット対象外。
+ClientSimStorage/
+
 # Local-only docs (個人情報を含むスタートアッププロンプト等)----------------
 # `.local.md` 拡張子のドキュメントはコミット対象外
 *.local.md

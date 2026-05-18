@@ -30,7 +30,7 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [x] **MainFloor** を Primitive Cube で配置(Scale **16**×0.2×80、上面 Y=0) — 2026-05-16
 - [x] **VerticalLine.prefab** を Primitive Cube で作成(細い線、Scale 0.2×0.02×60)、VLine_0〜3 配置 — 2026-05-16
 - [x] **HorizontalBar.prefab** を Primitive Cube で作成(Scale 4×0.02×0.2)、全 **33** 本配置(S00〜S10 × 3 ペア、全 active 状態) — 2026-05-16
-- [ ] スタート/ゴール位置にマーカー Empty GameObject 配置 — Phase 2 着手時に Cart_N と GoalBarrier_N の Transform を参照する形で対応予定(別 Empty 不要)
+- [x] スタート/ゴール位置にマーカー Empty GameObject 配置 — `_World/WaypointMarkers/Cart0Path` に WP_0〜4 配置済(commit `b8c7103`)。当初「別 Empty 不要」想定だったが、CartController が `waypointMarkers Transform[]` を要求するため Empty で実装した
 - [x] **ゴール手前バリアの仮配置**(カート用隙間付き、Z=-58.5、各バリア 4m 幅で MainFloor 全幅を密に塞ぐ) — 2026-05-16
 - [x] DefaultSpawn 配置(Position (0, 0.1, +10))、Respawn Height Y=-1 — 2026-05-16
 - [x] エントリーエリア仮配置(MainFloor 上の Seats 4 つ + StartButton 仮 + RulesPanel 仮 + ResultDisplay 仮) — 2026-05-16
@@ -45,16 +45,18 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 - [x] Cart Prefab 作成 (Visualモデル + Collider + VRC_Station) — Phase 1 で先行完了(2026-05-16)
 - [x] VRC_Station 設定 (`disableStationExit=false`, `PlayerMobility=Immobilize (For Vehicle)`, `Seated=true`) — Phase 1 で先行完了、2026-05-17 改訂([ADR-0007](./adr/0007-vrcstation-transform-cart.md))
 - [x] **Layer 設定**: カートと歩行者の衝突分離(Cart=User22 レイヤー作成、PlayerLocal と分離) — Phase 0/1 で完了
-- [ ] `CartController.cs` (UdonSharp) 実装
-  - [ ] **Inspector フィールド**: `laneIndex / speed=2.0 / station` (Common) + `startOnEnter=true / lookAtMovingDirection=false / waypointMarkers Transform[]` (Phase 2 暫定、Phase 3 で削除/置換)
-  - [ ] **ローカル状態**: `_state (Idle/Running/Goaled) / _raceStartTime / _waypoints / _cumulativeDist / _totalDuration / _isLocalSeated / _isExitingByGoal`(全て private、同期不要)
-  - [ ] `Start()`: `waypointMarkers` から `_waypoints` / `_cumulativeDist` / `_totalDuration` を構築(Phase 3 で `ComputePath(seed, lane)` に置換)
-  - [ ] `Update()`: `_state==Running` のとき `Networking.CalculateServerDeltaTime` で時刻ベース Lerp、`transform.position` 更新
-  - [ ] `lookAtMovingDirection==true` のとき `Quaternion.LookRotation(進行方向)` を適用(デフォルト OFF、速度 2.0 m/s で視点動が大きく酔いやすいため)
-  - [ ] `OnStationEntered`: ローカルプレイヤーなら `_isLocalSeated = true` + `startOnEnter` 真なら `StartRace()`
-  - [ ] `OnStationExited`: `_isLocalSeated = false` + `HandleExit(player)`(Phase 2 では `_isExitingByGoal` 常に false なので必ずリタイア処理)。`HandleExit` の具体動作は **`_state = Idle` + `transform.position` を `_waypoints[0]` (起点) に戻す**(1 回の Build & Test で複数回乗降テスト可能にするため)。Phase 4 で `participantPlayerIds[laneIndex] = -1` + 空席走行継続に置換
-  - [ ] **`InputJump` イベントハンドラ**: `value && _isLocalSeated` なら `station.ExitStation(LocalPlayer)` → 結果 `OnStationExited` に流れリタイア処理([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 追記)
-  - [ ] **Phase 2 は UdonSynced 変数 0 個**(同期は Phase 3 で GameManager 実装時に導入。Phase 2 はローカル単独走行のテストに集中)
+- [x] `CartController.cs` (UdonSharp) 実装 — commit `b8c7103` (2026-05-17)、サブ項目はすべて仕様通り実装済
+  - [x] **Inspector フィールド**: `laneIndex / speed=2.0 / station` (Common) + `startOnEnter=true / lookAtMovingDirection=false / waypointMarkers Transform[]` (Phase 2 暫定、Phase 3 で削除/置換)
+  - [x] **ローカル状態**: `_state (Idle/Running/Goaled) / _raceStartTime / _waypoints / _cumulativeDist / _totalDuration / _isLocalSeated / _isExitingByGoal`(全て private、同期不要)
+  - [x] `Start()`: `waypointMarkers` から `_waypoints` / `_cumulativeDist` / `_totalDuration` を構築(Phase 3 で `ComputePath(seed, lane)` に置換)
+  - [x] `Update()`: `_state==Running` のとき `Networking.CalculateServerDeltaTime` で時刻ベース Lerp、`transform.position` 更新
+  - [x] `lookAtMovingDirection==true` のとき `Quaternion.LookRotation(進行方向)` を適用(デフォルト OFF、速度 2.0 m/s で視点動が大きく酔いやすいため)
+  - [x] `OnStationEntered`: ローカルプレイヤーなら `_isLocalSeated = true` + `startOnEnter` 真なら `StartRace()`
+  - [x] `OnStationExited`: `_isLocalSeated = false` + `HandleExit(player)`(Phase 2 では `_isExitingByGoal` 常に false なので必ずリタイア処理)。`HandleExit` の具体動作は **`_state = Idle` + `transform.position` を `_waypoints[0]` (起点) に戻す**(1 回の Build & Test で複数回乗降テスト可能にするため)。Phase 4 で `participantPlayerIds[laneIndex] = -1` + 空席走行継続に置換
+  - [x] **`InputJump` イベントハンドラ**: `value && _isLocalSeated` なら `station.ExitStation(LocalPlayer)` → 結果 `OnStationExited` に流れリタイア処理([ADR-0007](./adr/0007-vrcstation-transform-cart.md) 2026-05-17 追記)
+  - [x] **Phase 2 は UdonSynced 変数 0 個**(同期は Phase 3 で GameManager 実装時に導入。Phase 2 はローカル単独走行のテストに集中)
+- [x] **Cart Prefab 構造再編** — commit `b8c7103`: VRC_Station を Seat 子 → Cart Root に移動(`OnStationEntered` 受信のため)、Cart Root に Box Collider(IsTrigger=true)追加、Cart Root と Seat の Layer を Default に変更、`canUseStationFromStation=false` に修正、`_World/WaypointMarkers/Cart0Path/WP_0〜4` を Cart_0 にアサイン
+- [ ] **🔴 Phase 2 アクティブブロッカー: Use interaction が実 VRChat ビルドで発火しない問題の解消** — Cart Prefab の Visual / Body は依然 Layer=User22、Cart Root + Seat の二重 IsTrigger Collider 構成と相まって着座インタラクションが拾われない。Cart Layer (User22) 戦略の見直しが必要(2026-05-17 commit `b8c7103` の本文より引き継ぎ)
 - [ ] 着座すると固定経路を巡回するテスト
 - [ ] **走行中に歩行者がカートをすり抜けられるか確認**(Layer 設定の検証)
 - [ ] **4 種の退出経路すべてが動作することを確認**: ①VR トリガー、②Desktop 移動入力(WASD/スティック)、③Desktop Space キー(InputJump)、④VR ジャンプボタン(A/B 等、InputJump 共通)
