@@ -70,19 +70,19 @@ Unity GUI 操作の確定値は [docs/phase1-prefab-checklist.md](./phase1-prefa
 **完了基準**: 1人がカートに着座し、固定経路を最後まで自動巡回、別の人が走って追いかけてもカートと干渉しない。4 種の退出経路すべてがリタイア扱いで処理される
 **完了状況 (2026-05-18)**: 着座・自動巡回・退出 4 種・停止カートすり抜け = ✅。走行中干渉は Phase 3 持ち越し(Phase 2 段階では他クライアントから走行が見えない設計のため検証不能)
 
-## 準備期間: ゴール演出 Prefab 制作 [5/19-5/20] [2日バッファ活用]
+## 準備期間: ゴール演出 Prefab 制作 [5/19-5/20] ✅ 完了 (2026-05-19)
 
 Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根拠は [ADR-0012](./adr/0012-goal-effect-randomized.md)、確定値は [phase4-effect-prefab-checklist.md](./phase4-effect-prefab-checklist.md)。
 
-- [ ] **マテリアル 3 個追加**: `M_FX_Explosion_Fireball` / `M_FX_Explosion_Smoke` / `M_FX_Confetti` を作成([material-set.md §7](./material-set.md#7-phase-1-運用方針プレースホルダ色のみ))
-- [ ] **ExplosionEffect.prefab** 作成 — [phase4-effect-prefab-checklist.md §1](./phase4-effect-prefab-checklist.md#1-explosioneffectprefab) の Inspector 値どおり
-- [ ] **ConfettiEffect.prefab** 作成 — [phase4-effect-prefab-checklist.md §2](./phase4-effect-prefab-checklist.md#2-confettieffectprefab) の Inspector 値どおり
-- [ ] 既存 `PrizeArea.prefab` 4 部屋すべてにネスト Prefab として組込み — [phase4-effect-prefab-checklist.md §3](./phase4-effect-prefab-checklist.md#3-prizearea-prefab-への組み込み)
-- [ ] `_Managers/GameManager` 配下に `FinaleSharedAudio` (2D AudioSource) を配置 — [phase4-effect-prefab-checklist.md §4](./phase4-effect-prefab-checklist.md#4-gamemanager-直下-finalesharedaudioa-モード共通-se)
-- [ ] AudioClip は Phase 8 で差し替え予定、現状は空クリップ運用
-- [ ] ClientSim で見映え確認 — [phase4-effect-prefab-checklist.md §5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認)
+- [x] **マテリアル 3 個追加** — `M_FX_Explosion_Fireball` / `M_FX_Explosion_Smoke` / `M_FX_Confetti`、`VRChat/Mobile/Particles/Additive`・`Multiply` の実物理仕様(Tint Color / GPU Instancing プロパティなし)を [material-set.md §1脚注 / §2.3](./material-set.md) に反映済 — commit `5aeae24`
+- [x] **ExplosionEffect.prefab** 作成 — `Assets/_Project/Prefabs/Effects/`、[§1](./phase4-effect-prefab-checklist.md#1-explosioneffectprefab) の Inspector 値どおり
+- [x] **ConfettiEffect.prefab** 作成 — 同上、[§2](./phase4-effect-prefab-checklist.md#2-confettieffectprefab) の Inspector 値どおり
+- [x] 既存 `PrizeArea.prefab` 4 部屋すべてにネスト Prefab として組込み — [§3](./phase4-effect-prefab-checklist.md#3-prizearea-prefab-への組み込み)
+- [x] `_Managers/GameManager` 配下に `FinaleSharedAudio` (2D AudioSource) を配置 — [§4](./phase4-effect-prefab-checklist.md#4-gamemanager-直下-finalesharedaudioa-モード共通-se)
+- [x] AudioClip は Phase 8 で差し替え予定、現状は空クリップ運用
+- [x] ClientSim で見映え確認 — 概観確認済。粒子高さ(火球 4-6m / 煙 6-8m / 紙吹雪 10m)と観戦距離 34 m からの視認性の最終判定は [Phase 8 Quest 実機判定](#phase-8-quest-実機テスト--調整-529-1日) に統合(2026-05-19 方針確定、HMD 110° 視野角での迫力評価が PC モニタでは代替不能なため)
 
-**完了基準**: [phase4-effect-prefab-checklist.md §7](./phase4-effect-prefab-checklist.md#7-phase-4-着手準備の完了基準) のチェックリストをすべて満たす
+**完了基準**: [phase4-effect-prefab-checklist.md §7](./phase4-effect-prefab-checklist.md#7-phase-4-着手準備の完了基準) のチェックリストをすべて満たす — ✅ 達成
 
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 
@@ -179,6 +179,11 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
   - [ ] ゴール手前バリア突破不可
   - [ ] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))
     - [ ] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか
+    - [ ] **粒子高さ・観戦距離視認チェック**(準備期間 ClientSim 見映え確認 [§5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認) の 4 個別項目を Phase 8 に統合、2026-05-19 方針確定)
+      - 火球が 4〜6 m まで上がるか
+      - 煙が 6〜8 m まで立ち上がるか(Multiply で背景がやや暗くなるか)
+      - 紙吹雪が 10 m 程度まで上がり横拡散 5〜6 m か
+      - 観戦距離 34 m(MainFloor 中央 Z=-30 → 賞品エリア Z=-64)から壁(高さ 4 m)越しに視認できるか
     - [ ] 発火時の FPS 低下が 60 FPS を下回らないか、必要なら粒子数を削減
     - [ ] **Confetti Start Color 5 色のギラギラ感確認**(現行は原色 `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC`、HMD で過剰なら彩度を落とした中間調 `#FF3333 / #FFCC00 / #33CC33 / #3399FF` 系に差し替え。2026-05-19 確定方針)
     - [ ] **Confetti 色バリエーション拡張検討**(現行 5 色、Android 制約外なので 8〜10 色まで増やせる。Gradient Editor の Color マーカー追加のみで対応可。2026-05-19 ClientSim 確認時のユーザー所感「もう少し色バリエーションあると綺麗」を Phase 8 実機判定に持ち越し)

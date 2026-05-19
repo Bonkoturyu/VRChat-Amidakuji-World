@@ -245,6 +245,8 @@ GameManager の `_FireFinale()` で `finaleSharedAudio.Play()` を呼ぶ。
 
 ## 5. ClientSim での見映え確認
 
+> **2026-05-19 方針更新**: 本節 4 個別チェック(火球高さ・煙高さ・紙吹雪高さ・観戦距離 34 m 視認)の最終判定は [Phase 8 Quest 実機](./tasklist.md#phase-8-quest-実機テスト--調整-529-1日) に統合。ClientSim では概観確認のみ実施し、本判定は HMD 実機で行う(110° 視野角での迫力評価が PC モニタでは代替不能なため)。
+
 Prefab 単体テストとして、以下の手順で動作確認:
 
 1. テスト用シーンを新規作成 or 現行シーンの空きエリアに ExplosionEffect / ConfettiEffect を配置
@@ -289,18 +291,19 @@ Prefab 単体テストとして、以下の手順で動作確認:
 
 ## 7. Phase 4 着手準備の完了基準
 
-- [ ] `Assets/_Project/Materials/` に 13. 〜 15. の 3 マテリアルが作成済み([material-set.md §1 / §7](./material-set.md))
-- [ ] `Assets/_Project/Prefabs/Effects/ExplosionEffect.prefab` が §1 通りの構造で作成済み
-- [ ] `Assets/_Project/Prefabs/Effects/ConfettiEffect.prefab` が §2 通りの構造で作成済み
-- [ ] ClientSim 上で両 Prefab が個別に `SetActive(true)` で発火する
-- [ ] 既存 `PrizeArea.prefab` に Effect 2 種をネスト Prefab として組み込み済み(全 4 部屋)
-- [ ] `_Managers/GameManager` 配下に `FinaleSharedAudio` (AudioSource, 2D, ClipはPhase 8) を配置済み
-- [ ] §5 の見映え確認チェックを ClientSim で完了
+- [x] `Assets/_Project/Materials/` に 13. 〜 15. の 3 マテリアルが作成済み([material-set.md §1 / §7](./material-set.md))
+- [x] `Assets/_Project/Prefabs/Effects/ExplosionEffect.prefab` が §1 通りの構造で作成済み
+- [x] `Assets/_Project/Prefabs/Effects/ConfettiEffect.prefab` が §2 通りの構造で作成済み
+- [x] ClientSim 上で両 Prefab が個別に `SetActive(true)` で発火する
+- [x] 既存 `PrizeArea.prefab` に Effect 2 種をネスト Prefab として組み込み済み(全 4 部屋)
+- [x] `_Managers/GameManager` 配下に `FinaleSharedAudio` (AudioSource, 2D, ClipはPhase 8) を配置済み
+- [x] §5 の見映え確認チェック完了(概観のみ、4 個別項目は Phase 8 Quest 実機判定に統合、2026-05-19 方針確定)
 
-完了したら、Phase 3 着手 → Phase 4 でロジック配線へ進む。
+✅ 全項目達成(2026-05-19)。Phase 3 着手 → Phase 4 でロジック配線へ進む。
 
 ---
 
 ## 8. 改訂履歴
 
 - 2026-05-18: 初版作成([ADR-0012](./adr/0012-goal-effect-randomized.md) 確定に伴い、Phase 3 着手前のバッファ日 5/19-5/20 で先行制作する Prefab 仕様を確定)
+- 2026-05-19: 全 Prefab 完成 + マテリアル実物理仕様反映(`VRChat/Mobile/Particles/*` は Tint Color / GPU Instancing プロパティを持たないことを §0.1 / [material-set.md §1脚注 / §2.3](./material-set.md) に反映)。ClientSim 見映え確認(§5 の 4 個別チェック)を Phase 8 Quest 実機判定に統合する方針に変更。§7 全項目達成(commit `5aeae24`)。
