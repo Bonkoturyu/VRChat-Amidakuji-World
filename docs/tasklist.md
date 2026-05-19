@@ -86,18 +86,46 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 3: ランダム生成 + seed同期 [5/21-5/23] [3日] ★山2
 
+**着手前設計確定(2026-05-19、論点 ①〜④)**:
+- 横線生成: 重み付き 5 パターン抽選で各 pair 出現確率 30% 均一化(詳細 [ADR-0002](./adr/0002-deterministic-rng-seed-sync.md))
+- `gameState`: Phase 3 では `Idle=0 / Running=2` の 2 値(`Countdown=1` は Phase 5 で挿入する予約番号、`ResultDisplay=3` は Phase 4-5 で追加)
+- seed 再現性: GameManager Inspector に `useDebugSeed (bool)` + `debugSeed (int)` 追加(Minecraft 風固定再現用)
+- ComputePath waypoint 配列: `new Vector3[24]` 安全側固定確保(横線 11 段全渡り上限 = 起点1 + 横線2×11 + 終点1)
+
+実装サブタスク:
+
 - [ ] `AmidakujiGenerator.cs` (UdonSharp) 実装
-  - [ ] `System.Random(seed)` で横線配置を決定論的に算出
-  - [ ] 連続横線禁止ロジック
-  - [ ] HasBar(lane, segment) API
-- [ ] 横線GameObject群を生成結果に応じて enable/disable
-- [ ] CartController に「seed + 開始縦線番号 → Waypoint配列」算出ロジック追加
+  - [ ] `System.Random(seed).Next(0, 10)` を seg ごとに 1 回呼び、重み付き 5 パターンから抽選(重み比 `(2, 2, 3, 2, 1)`、[ADR-0002 §横線生成の決定論性確保](./adr/0002-deterministic-rng-seed-sync.md))
+  - [ ] 横線 33 個の `SetActive(true/false)` 切替
+  - [ ] `HasBar(seg, lanePair) → bool` および `HasBarForLane(seg, lane) → {-1, 0, +1}` API
+  - [ ] Inspector: `horizontalBars[]` (33 個、`lanePair * SEGMENT_COUNT + seg` 順)
+  - [ ] 定数: `LANE_COUNT=4`, `LANE_PAIR_COUNT=3`, `SEGMENT_COUNT=11`, `LANE_X[4]={-6,-2,+2,+6}`, `SEG_Z[11]={-3..-53}`, `TOP_Y=+2`, `BOTTOM_Y=-58.5`
+- [ ] `CartController.cs` 改修
+  - [ ] **削除**: `startOnEnter` / `lookAtMovingDirection` / `waypointMarkers` (Phase 2 暫定)
+  - [ ] **追加**: `gameManager` / `generator` 参照
+  - [ ] `ComputePath(seed, laneIndex)` 実装([ADR-0003](./adr/0003-precomputed-waypoint-lerp.md) 擬似コード準拠、安全側 `Vector3[24]` 固定確保)
+  - [ ] `Update()` で `gameState` 変化検知 → Running 突入時に `ComputePath`、`elapsed < 0`(Countdown バッファ中)は起点で待機
+  - [ ] `_lastGameState` ローカル変数で状態変化検知
 - [ ] `GameManager.cs` (UdonSharp) 実装
-  - [ ] UdonSynced: `seed`, `gameState`, `raceStartTime`
-  - [ ] `OnDeserialization` 処理
-- [ ] スタートボタン (仮) を実装
-- [ ] Build & Test (2クライアント) で同じ横線配置・同じ経路が見えるか確認
-- [ ] `CalculateServerDeltaTime` を使った時刻計算の動作確認
+  - [ ] UdonSynced: `seed (int)` / `gameState (int)` / `raceStartTime (double)`
+  - [ ] Inspector: `useDebugSeed (bool, default false)` / `debugSeed (int, default 12345)` / `generator` / `carts[]` 参照
+  - [ ] `RequestStart()` (Master 限定): `seed` 生成 → `raceStartTime = now + 3.0` (3秒バッファ) → `gameState = STATE_RUNNING` → `RequestSerialization()` → `_ApplyState()`
+  - [ ] `OnDeserialization()` → `_ApplyState()`(Master は OnDeserialization が呼ばれないので RequestStart 内で直接呼ぶ)
+  - [ ] `_ApplyState()`: gameState==Running なら `generator.Rebuild(seed)` を呼ぶ
+- [ ] `StartButton.cs` (UdonSharp) 実装(仮)
+  - [ ] VRC_Interact + Master 二重ガード
+  - [ ] `gameManager.RequestStart()` 呼出のみ(視覚切替・参加者数チェックは Phase 5)
+- [ ] シーン配線
+  - [ ] `_Managers/AmidakujiGenerator` 配下に `horizontalBars[]` 33 個を `L * 11 + S` の順でドラッグ(`Bar_L0_S00..Bar_L0_S10, Bar_L1_S00..Bar_L1_S10, Bar_L2_S00..Bar_L2_S10`)
+  - [ ] `_Managers/GameManager` の `carts[]` に Cart_0..3 をドラッグ、`generator` バインド
+  - [ ] Cart_0..3 の CartController に `gameManager` / `generator` バインド、旧 `waypointMarkers` フィールド削除
+  - [ ] `EntryArea/StartButton` に `StartButton.cs` 追加、`gameManager` バインド
+- [ ] Build & Test (2クライアント) 検証 4 単位
+  - [ ] **V1**: 全 33 個の横線 active 状態が両クライアントで一致(目視 + Debug.Log)
+  - [ ] **V2**: 全 4 レーンの waypoint 列が両クライアントで一致(`Debug.Log("[Path L{lane}] " + string.Join(",", _waypoints))`)
+  - [ ] **V3**: 20 秒走行後のカート位置ズレ ≤ 0.1 m 目視
+  - [ ] **V4**: 両クライアントで `raceStartTime` / `seed` が一致(OnDeserialization 内 Debug.Log)
+- [ ] `CalculateServerDeltaTime` を使った時刻計算の動作確認(V3 に内包)
 - [ ] **走行中の歩行者すり抜け確認**(Phase 2 から引き継ぎ)— 2クライアント同期で他クライアントからもカート走行が見える状態になったら、走行中カートに地上の観戦者を突っ込ませて干渉なく通り抜けるか目視確認
 
 **完了基準**: Master側でスタート → 別クライアントから見ても同じあみだくじ・同じ経路でカートが走る

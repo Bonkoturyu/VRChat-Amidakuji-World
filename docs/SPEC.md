@@ -1,7 +1,7 @@
 # 仕様書 (v1.0 ロック)
 
-最終更新: 2026-05-18
-Status: **Locked** (v1.0開発期間中はこの仕様で進行。ただし 2026-05-16 にレイアウトを縦置き → 平面水平に変更 → [ADR-0011](./adr/0011-flat-horizontal-layout.md)。2026-05-17 に §4.1 / §4.3 の横線数表記を内部整合化、§5.1 を ADR-0007 改訂に追従。2026-05-18 に §8.3 ゴール演出を新設、§7.3 演出モード切替トグル(Master + Player Persistence)を追加、§12 「カスタム賞品」に注釈追加 → [ADR-0012](./adr/0012-goal-effect-randomized.md))
+最終更新: 2026-05-19
+Status: **Locked** (v1.0開発期間中はこの仕様で進行。ただし 2026-05-16 にレイアウトを縦置き → 平面水平に変更 → [ADR-0011](./adr/0011-flat-horizontal-layout.md)。2026-05-17 に §4.1 / §4.3 の横線数表記を内部整合化、§5.1 を ADR-0007 改訂に追従。2026-05-18 に §8.3 ゴール演出を新設、§7.3 演出モード切替トグル(Master + Player Persistence)を追加、§12 「カスタム賞品」に注釈追加 → [ADR-0012](./adr/0012-goal-effect-randomized.md)。2026-05-19 に Phase 3 詳細設計確定に伴い §4.1 横線生成アルゴリズムを「3 pair 独立 50% 判定 + 連続禁止タイブレーク」から「重み付き 5 パターン抽選(各 pair 出現確率 30% 均一)」に変更、§9.1 に Phase 別導入注記追加 → [ADR-0002 改訂](./adr/0002-deterministic-rng-seed-sync.md))
 
 ## 1. コンセプト
 
@@ -50,9 +50,12 @@ Status: **Locked** (v1.0開発期間中はこの仕様で進行。ただし 2026
 - 縦線長さ: 60.0 m (**Z 方向**、EntryArea 側 Z=+2 → GoalBarrier 側 Z=-58)
 - 横線間隔: 5.0 m(縦線 60 m を 5 m 間隔で区切り、内部境界の **11 箇所**を横線位置として使用。スタート側の Z=+2 端、GoalBarrier 手前 5.5 m の run-out zone は横線無し)
 - 横線位置 Z: `-3, -8, -13, -18, -23, -28, -33, -38, -43, -48, -53`(11 段)
-- 横線生成確率: 各横線位置で、各隣接縦線ペアに対し 50% で生成
-- 連続横線禁止: 同じ Z 位置で隣接する横線は同時生成しない(あみだくじの数学的制約)
-- 横線本数(最大): 11 × 3 = **33 本** 事前配置
+- 横線生成アルゴリズム: 各横線位置(segment)で、3 隣接ペア (lane 0-1, 1-2, 2-3) の状態を **重み付き 5 パターン抽選** で決定(2026-05-19 改訂、[ADR-0002](./adr/0002-deterministic-rng-seed-sync.md))
+  - 許可パターン(連続禁止を内包): `(0,0,0):重み2 / (1,0,0):2 / (0,1,0):3 / (0,0,1):2 / (1,0,1):1`(合計 10)
+  - 各 lane pair の出現確率は **均一 30%**(対称設計)、期待横線本数は **約 0.9 本/segment**、全 11 segment で **約 9.9 本**
+  - 抽選は seed 由来の `System.Random(seed).Next(0, 10)` を seg ごとに 1 回呼んで決定論的に実行
+- 連続横線禁止: 上記の許可パターン定義に内包される(`(1,1,0)`, `(0,1,1)`, `(1,1,1)` は許可外、別途タイブレーク不要)
+- 横線本数(最大): 11 × 3 = **33 本** 事前配置(全 active 状態でシーンに配置、Generator が `SetActive` 切替)
 
 縦線・横線とも床上面 Y=0 に対して Y=0.01(高さ 2 cm)の細い Cube として実装する([ADR-0011](./adr/0011-flat-horizontal-layout.md))。
 
@@ -202,12 +205,14 @@ v1.0では走行キャンセル機能は実装しない。状態遷移の実装�
 
 ### 9.1 Synced変数 (UdonSynced)
 
-| 変数 | 型 | 用途 |
-|---|---|---|
-| `seed` | int | あみだくじ生成シード |
-| `gameState` | int (enum: 0=Idle,1=Countdown,2=Running,3=ResultDisplay) | ステート |
-| `raceStartTime` | double | サーバー時刻ベースのレース開始時刻 |
-| `participantPlayerIds` | int[4] | 各座席に座っているプレイヤーID (-1=空) |
+| 変数 | 型 | 用途 | 導入 Phase |
+|---|---|---|---|
+| `seed` | int | あみだくじ生成シード | Phase 3 |
+| `gameState` | int (enum: 0=Idle,1=Countdown,2=Running,3=ResultDisplay) | ステート | Phase 3 (Idle/Running のみ)、Phase 5 で Countdown 挿入、Phase 4-5 で ResultDisplay 追加 |
+| `raceStartTime` | double | サーバー時刻ベースのレース開始時刻(`now + 3.0` で 3 秒バッファを置き、クライアント間同期遅延を吸収) | Phase 3 |
+| `participantPlayerIds` | int[4] | 各座席に座っているプレイヤーID (-1=空) | Phase 4 |
+
+> **gameState の番号付け**: Phase 3 段階では `Countdown=1` を欠番として `Idle=0` / `Running=2` のみ使用。Phase 5 で UI 実装時に `Countdown=1` を導入する設計のため、Phase 3 で `Running=1` にしてしまうと Phase 5 で全 CartController の判定値変更が必要になる。先回りで最終形の番号付けに合わせる。
 
 ### 9.2 同期しない情報
 
