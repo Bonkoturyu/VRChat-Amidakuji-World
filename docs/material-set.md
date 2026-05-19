@@ -23,9 +23,11 @@ Phase 1 着手時点の v1.0 マテリアル定義。PC + Android クロスプ�
 | 10 | `M_Button_Active` | `VRChat/Mobile/Standard Lite` | 単色(緑 + Emission) | — | ✓ | StartButton 押下可状態 |
 | 11 | `M_Button_Inactive` | `VRChat/Mobile/Standard Lite` | 単色(灰) | — | ✓ | StartButton 無効状態 |
 | 12 | `M_UI_Display` | TextMeshPro `Mobile/Distance Field` | TMP Font Atlas | 1024 | ✓ | ResultDisplay / RulesPanel のテキスト面 |
-| 13 | `M_FX_Explosion_Fireball` | `VRChat/Mobile/Particles/Additive` | (Unity 既定 `Default-Particle`、Phase 8 で差し替え可) | 64(既定) | ✓ | ExplosionEffect.prefab の火球用 ParticleSystem |
-| 14 | `M_FX_Explosion_Smoke` | `VRChat/Mobile/Particles/Multiply` | (同上) | 64 | ✓ | ExplosionEffect.prefab の煙用(灰白色、Multiply で煤感補強) |
-| 15 | `M_FX_Confetti` | `VRChat/Mobile/Particles/Additive` | (同上) | 64 | ✓ | ConfettiEffect.prefab の紙片用、Color over Lifetime で多色化 |
+| 13 | `M_FX_Explosion_Fireball` | `VRChat/Mobile/Particles/Additive` | (Unity 既定 `Default-Particle`、Phase 8 で差し替え可) | 64(既定) | —※ | ExplosionEffect.prefab の火球用 ParticleSystem |
+| 14 | `M_FX_Explosion_Smoke` | `VRChat/Mobile/Particles/Multiply` | (同上) | 64 | —※ | ExplosionEffect.prefab の煙用(灰白色、Multiply で煤感補強) |
+| 15 | `M_FX_Confetti` | `VRChat/Mobile/Particles/Additive` | (同上) | 64 | —※ | ConfettiEffect.prefab の紙片用、Color over Lifetime で多色化 |
+
+> **※ Particles 系 3 マテリアルの注意**: `VRChat/Mobile/Particles/*` シェーダーは Quest 向け最小プロパティ構成のため、**`Tint Color` プロパティおよび `Enable GPU Instancing` チェックボックスを Inspector に持たない**。マテリアル側の公開プロパティは Particle Texture と Render Queue / Double Sided Global Illumination のみ。**色制御はすべて Particle System 側**(`Start Color` / `Color over Lifetime`)で行う。GPU Instancing 相当のバッチング最適化は Particle System Renderer モジュール側で管理される(Standard Lite 系の `Enable GPU Instancing` フラグとは別経路、表の `—` は「マテリアル Inspector 上の項目なし」を示す)。2026-05-19 ユーザー作業中に実物理仕様を確認・反映。
 
 **合計 15 マテリアル**(バジェット 20 に対し +5 のヘッドルーム。Phase 5 の UI 追加・Phase 9 の装飾に充当)。Phase 4 着手時 13〜15 を追加(`M_FX_*` 3 個、[ADR-0012](./adr/0012-goal-effect-randomized.md))。
 
@@ -87,6 +89,25 @@ Signed Distance Field (SDF) は、各画素に「最も近い文字輪郭まで�
 - **`VRChat/Mobile/Particles/Multiply`**: 乗算合成。背景を暗くする方向(煤・影)に使用。Quest の透明度マテリアル禁止制約下で「黒煙」の代替表現として限定使用
 - 両シェーダーとも `Soft Particles`(Z バッファ補間)は Quest で重いため OFF
 - パーティクルシステムの `Color over Lifetime` でフェードアウトを制御する運用が標準(マテリアル側 `_Color.a` に依存しない)
+
+#### マテリアル Inspector 上の公開プロパティ(2026-05-19 実物理仕様を確認・反映)
+
+`VRChat/Mobile/Particles/Additive` および `Multiply` の Inspector 公開プロパティは **最小構成**:
+
+| プロパティ | 説明 | 備考 |
+|---|---|---|
+| Particle Texture | テクスチャスロット(`_MainTex`) | Default-Particle 等をアサイン |
+| Tiling / Offset | テクスチャ UV 調整 | 通常変更しない |
+| Render Queue | 描画順 | 既定 `From Shader (3000)` のまま |
+| Double Sided Global Illumination | 両面 GI 設定 | OFF のまま |
+
+**持たないプロパティ**(Standard Lite 系と異なる重要点):
+
+- **`Tint Color` / `_Color`**: マテリアル側に色プロパティなし。色は Particle System の `Start Color` / `Color over Lifetime` で全制御
+- **`Enable GPU Instancing` チェックボックス**: Inspector 上の Advanced Options セクション自体が存在しない。GPU Instancing 相当の最適化は Particle System の Renderer モジュール側で管理(Render Mode `Billboard` 採用時に Unity が自動でバッチング判定)
+- **Albedo / Normal Map / Smoothness 等の PBR スロット**: 持たない(Particle 専用シェーダーのため)
+
+→ §7 のプレースホルダ色一覧の `M_FX_*` 行は **Particle System 側で使う基準色のメモ** であって、マテリアル Inspector のフィールドへ直接設定する値ではない。実体は Particle System の `Start Color` / `Color over Lifetime` の Gradient で決まる。
 
 ---
 
@@ -195,11 +216,13 @@ Phase 1 着手時点では、テクスチャ画像は用意せず **Main Color �
 | `M_LaneColor_3` | `#0000FF` | 青(Cart_3 ボディのみ) |
 | `M_Button_Active` | `#00CC00` | 緑、Emission は Phase 5 で検討 |
 | `M_Button_Inactive` | `#666666` | 暗めグレー |
-| `M_FX_Explosion_Fireball` | `#FF6600` | オレンジ(火球用、パーティクル `Color over Lifetime` で `#FFFF00 → #FF6600 → #AA1100` グラデ運用) — Phase 4 で追加 |
-| `M_FX_Explosion_Smoke` | `#DDDDDD` | 明るい灰(Multiply で背景を暗くする方向に作用、結果として煤感) — Phase 4 で追加 |
-| `M_FX_Confetti` | `#FFFFFF` | 白(パーティクル `Start Color` で `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC` のランダム多色運用) — Phase 4 で追加 |
+| `M_FX_Explosion_Fireball` ※ | `#FF6600` | オレンジ(火球用、パーティクル `Color over Lifetime` で `#FFFF00 → #FF6600 → #AA1100` グラデ運用) — Phase 4 で追加 |
+| `M_FX_Explosion_Smoke` ※ | `#DDDDDD` | 明るい灰(Multiply で背景を暗くする方向に作用、結果として煤感) — Phase 4 で追加 |
+| `M_FX_Confetti` ※ | `#FFFFFF` | 白(パーティクル `Start Color` で `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC` のランダム多色運用) — Phase 4 で追加 |
 
-全マテリアル共通設定:
+> **※ Particles 系 3 マテリアルの HEX 値の扱い**: `VRChat/Mobile/Particles/*` シェーダーは Tint Color プロパティを持たないため、表中の HEX 値は **マテリアルに直接設定する値ではなく、Particle System 側で使う基準色のメモ**。実体は Particle System の `Start Color` および `Color over Lifetime` の Gradient で決まる(詳細は §2.3 末「マテリアル Inspector 上の公開プロパティ」を参照)。
+
+全マテリアル共通設定(**`VRChat/Mobile/Standard Lite` 系 11 個のみ**):
 
 - Shader: `VRChat/Mobile/Standard Lite`
 - Metallic: 0(既定)
@@ -209,8 +232,11 @@ Phase 1 着手時点では、テクスチャ画像は用意せず **Main Color �
 - Advanced Options > **Enable GPU Instancing: チェック**
 - Advanced Options > Double Sided Global Illumination: オフ
 
+**Particles 系 3 個(`M_FX_*`)は上記共通設定の対象外**(Tint Color / Enable GPU Instancing プロパティを持たないため)。Shader 選択(Additive / Multiply)+ Particle Texture アサインのみで完結。詳細は §2.3 末。
+
 ## 8. 改訂履歴
 
+- 2026-05-19: **`VRChat/Mobile/Particles/*` の実物理仕様を確認・反映**。同シェーダーは Tint Color プロパティおよび Enable GPU Instancing チェックボックスを Inspector に持たない最小構成と判明、§1 の GPU Inst. 列 `✓` → `—※` に修正、§2.3 末に公開プロパティ詳細を追記、§7 表の `M_FX_*` 3 行に `※` 注釈を追加、共通設定が Standard Lite 系のみに適用される旨を明記([Phase 4 準備期間のユーザー作業中に発見](./tasklist.md#準備期間-ゴール演出-prefab-制作-519-520-2日バッファ活用))
 - 2026-05-18: Phase 4 着手準備として **`M_FX_Explosion_Fireball` / `M_FX_Explosion_Smoke` / `M_FX_Confetti` の 3 マテリアルを追加**(計 15 個)。シェーダー §2.3 を Particles 系として追記、§7 にプレースホルダ色を追記([ADR-0012](./adr/0012-goal-effect-randomized.md))
 - 2026-05-16: 初版作成(Phase 1 着手に合わせて 12 マテリアル構成・レーン色 4 色を確定)
 - 2026-05-16: ベースシェーダーを `Mobile/VRChat/Lightmapped` → `VRChat/Mobile/Standard Lite` に変更。

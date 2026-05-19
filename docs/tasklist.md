@@ -180,6 +180,9 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
   - [ ] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))
     - [ ] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか
     - [ ] 発火時の FPS 低下が 60 FPS を下回らないか、必要なら粒子数を削減
+    - [ ] **Confetti Start Color 5 色のギラギラ感確認**(現行は原色 `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC`、HMD で過剰なら彩度を落とした中間調 `#FF3333 / #FFCC00 / #33CC33 / #3399FF` 系に差し替え。2026-05-19 確定方針)
+    - [ ] **Confetti 色バリエーション拡張検討**(現行 5 色、Android 制約外なので 8〜10 色まで増やせる。Gradient Editor の Color マーカー追加のみで対応可。2026-05-19 ClientSim 確認時のユーザー所感「もう少し色バリエーションあると綺麗」を Phase 8 実機判定に持ち越し)
+    - [ ] **粒子サイズ・Start Lifetime 見直し検討**(現行設計値は観戦距離 34 m 想定で計算済みだが、ClientSim では「もう少しデカい方が見える気もする」所感あり。HMD 110° 視野角での迫力次第で `Start Size` / `Start Lifetime` を 1.2〜1.5 倍に調整。2026-05-19 ClientSim 確認時のユーザー所感を Phase 8 実機判定に持ち越し)
     - [ ] A モード / B モードの体感差を比較、既定モードを最終決定
     - [ ] 個別爆発音・紙吹雪音の 3D 音量(Max Distance)を MainFloor から自然に聴こえる値に調整
   - [ ] Late Joiner: Quest からPC instance への参加

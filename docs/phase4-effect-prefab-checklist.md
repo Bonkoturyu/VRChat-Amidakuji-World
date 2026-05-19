@@ -13,9 +13,20 @@
 
 - 全 Prefab は `Assets/_Project/Prefabs/Effects/` 配下に保存(`Effects/` フォルダを新規作成)
 - AudioClip(爆発音・紙吹雪音・フィナーレ共通音)は **Phase 4 着手時点では未設定**(AudioSource を空クリップでアタッチ、Phase 8 で差し替え)。差し替え手順は §6 参照
-- ParticleSystem のテクスチャは **Unity 既定 `Default-Particle`(白い丸い softdot)を使用**(マテリアルの Albedo に明示的に割り当てる)。専用テクスチャ差し替えは Phase 8 で検討
+- ParticleSystem のテクスチャは **Unity 既定 `Default-Particle`(白い丸い softdot)を使用**(マテリアル側の Particle Texture スロットにアサイン。Project 検索バーで `Default-Particle` + 「In Packages」絞り込みで Built-in アセットを表示できる)。専用テクスチャ差し替えは Phase 8 で検討
 - 単位: 全てメートル (m) / 秒 (s)
 - Y=0 が床上面(賞品エリア内では Y=0 が床、ParticleSystem は Y=0.5〜1.0 から発火)
+
+### 0.1 Particles 系マテリアル(`M_FX_*` 3 個)の Inspector 上の注意 — 2026-05-19 追記
+
+`VRChat/Mobile/Particles/Additive` および `Multiply` シェーダーは **Tint Color プロパティおよび Enable GPU Instancing チェックボックスを Inspector に持たない**(Quest 向け最小構成のため)。
+
+マテリアル作成時にやることは以下のみ:
+
+1. Shader を `VRChat/Mobile/Particles/Additive` または `Multiply` に変更
+2. Particle Texture スロットに `Default-Particle` をアサイン(空でも可、その場合は白丸の既定描画)
+
+**Tint Color の設定や GPU Instancing のチェックは不要**(プロパティが存在しないので操作できない)。色制御は **すべて Particle System 側**(`Start Color` / `Color over Lifetime` / `Random Color from Gradient` 等)で行う。詳細は [material-set.md §2.3](./material-set.md#23-vrchatmobileparticlesadditive-と-multiplym_fx_-3-個phase-4-で追加)。
 
 ---
 
@@ -123,7 +134,7 @@ ConfettiEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 | | Start Lifetime | 3.0 |
 | | Start Speed | 8.0(上方向に強く噴射) |
 | | Start Size | 0.15〜0.3(Random Between Two Constants) |
-| | Start Color | (Random Between Two Colors または Random Color from Gradient) `#FF3333 / #FFCC00 / #33CC33 / #3399FF / #FF66CC` のいずれか |
+| | Start Color | (Random Between Two Colors または Random Color from Gradient) `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC` のいずれか([material-set.md §7](./material-set.md#7-phase-1-運用方針プレースホルダ色のみ) と一致、レーン色と同一原色パレットで世界観統一)。HMD 実機で「ギラギラしすぎる」場合は Phase 8 で彩度を落とした中間調(#FF3333 / #FFCC00 / #33CC33 / #3399FF 系)に差し替え検討 |
 | | Start Rotation | 0〜360(Random Between Two Constants、紙片の向きをランダム化) |
 | | Gravity Modifier | 1.0(自然落下) |
 | | Simulation Space | World |
