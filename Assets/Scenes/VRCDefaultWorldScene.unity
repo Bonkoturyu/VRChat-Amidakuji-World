@@ -6396,12 +6396,12 @@ MonoBehaviour:
   useAssignedLayers: 0
   DynamicPrefabs: []
   DynamicMaterials:
-  - {fileID: 2100000, guid: aeece366d9043ea44bc4693fcc63aaad, type: 2}
   - {fileID: 2100000, guid: 7d97feeec5864ed408d93738eb6327ec, type: 2}
+  - {fileID: 2100000, guid: aeece366d9043ea44bc4693fcc63aaad, type: 2}
   - {fileID: 2100000, guid: 3322c78aec12edb42abcdc61e13ebd70, type: 2}
-  - {fileID: 2100000, guid: daee414ae47973e40891898d958e68b7, type: 2}
   - {fileID: 2100000, guid: 2644ef3bbf43f0c43914f021e45d1bf3, type: 2}
   - {fileID: 2100000, guid: 425392b591d361146a31090247416b54, type: 2}
+  - {fileID: 2100000, guid: daee414ae47973e40891898d958e68b7, type: 2}
   LightMapsNear: []
   LightMapsFar: []
   LightMode: 0

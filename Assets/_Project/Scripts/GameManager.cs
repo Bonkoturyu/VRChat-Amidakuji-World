@@ -66,12 +66,28 @@ public class GameManager : UdonSharpBehaviour
         if (gameState == STATE_RUNNING)
         {
             if (generator != null) generator.Rebuild(seed);
+            // Rebuild 完了後に各 Cart に明示通知して同フレーム内で順序保証
+            // (Joiner 側で Update polling だと Rebuild と ComputePath の順序が不安定で
+            //  横線未初期化の状態で経路計算される回帰があった、Phase 3 V2 不具合)
+            if (carts != null)
+            {
+                for (int i = 0; i < carts.Length; i++)
+                {
+                    if (carts[i] != null) carts[i]._OnRaceStarted();
+                }
+            }
             Debug.Log("[GameManager] state=Running seed=" + seed + " raceStart=" + raceStartTime);
         }
         else if (gameState == STATE_IDLE)
         {
+            if (carts != null)
+            {
+                for (int i = 0; i < carts.Length; i++)
+                {
+                    if (carts[i] != null) carts[i]._OnRaceReset();
+                }
+            }
             Debug.Log("[GameManager] state=Idle");
         }
-        // CartController は Update polling で gameState の変化を検知して ComputePath を呼ぶ
     }
 }

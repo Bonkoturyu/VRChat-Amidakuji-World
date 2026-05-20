@@ -25,7 +25,6 @@ public class CartController : UdonSharpBehaviour
     private float _totalDuration;
     private bool _isLocalSeated;
     private bool _isExitingByGoal;
-    private int _lastGameState = -1;
 
     void Start()
     {
@@ -35,30 +34,28 @@ public class CartController : UdonSharpBehaviour
         _totalDuration = 0f;
     }
 
+    // GameManager._ApplyState() から同フレームで呼ばれる(Rebuild 完了後)。
+    // これにより Joiner 側でも横線初期化済の状態で ComputePath できる。
+    public void _OnRaceStarted()
+    {
+        if (gameManager == null || generator == null) return;
+        ComputePath(gameManager.seed, laneIndex);
+        if (_waypointCount > 0)
+        {
+            transform.position = _waypoints[0];
+        }
+    }
+
+    public void _OnRaceReset()
+    {
+        _waypointCount = 0;
+        _totalDuration = 0f;
+    }
+
     void Update()
     {
         if (gameManager == null) return;
-
-        int gs = gameManager.gameState;
-        if (gs != _lastGameState)
-        {
-            if (gs == GameManager.STATE_RUNNING)
-            {
-                ComputePath(gameManager.seed, laneIndex);
-                if (_waypointCount > 0)
-                {
-                    transform.position = _waypoints[0];
-                }
-            }
-            else if (gs == GameManager.STATE_IDLE)
-            {
-                _waypointCount = 0;
-                _totalDuration = 0f;
-            }
-            _lastGameState = gs;
-        }
-
-        if (gs != GameManager.STATE_RUNNING) return;
+        if (gameManager.gameState != GameManager.STATE_RUNNING) return;
         if (_waypointCount < 2) return;
 
         // ADR-0003: 生の GetServerTimeInSeconds() を引き算してはいけない
