@@ -7,81 +7,81 @@ using VRCStation = VRC.SDK3.Components.VRCStation;
 
 public class CartController : UdonSharpBehaviour
 {
-    // --- Inspector: Common (Phase 3 以降も維持) ---
+    [Header("Cart Identity")]
     public int laneIndex;
     public float speed = 2.0f;
     public VRCStation station;
 
-    // --- Inspector: Phase 2 暫定 (Phase 3 で ComputePath(seed, lane) に置換) ---
-    public bool startOnEnter = true;
-    public bool lookAtMovingDirection = false;
-    public Transform[] waypointMarkers;
+    [Header("References")]
+    public GameManager gameManager;
+    public AmidakujiGenerator generator;
 
-    // --- Local state (UdonSynced 0 個、Phase 2 はローカル単独走行) ---
-    private int _state;
-    private double _raceStartTime;
+    // ローカル状態(UdonSynced 0 個、ローカル算出のみ)
+    // 起点1 + (横線渡り 11 段 × 2 waypoint) + 終点1 = 24 が理論上限
+    private const int MAX_WAYPOINTS = 24;
     private Vector3[] _waypoints;
     private float[] _cumulativeDist;
+    private int _waypointCount;
     private float _totalDuration;
     private bool _isLocalSeated;
     private bool _isExitingByGoal;
-
-    private const int STATE_IDLE = 0;
-    private const int STATE_RUNNING = 1;
-    private const int STATE_GOALED = 2;
+    private int _lastGameState = -1;
 
     void Start()
     {
-        if (waypointMarkers == null || waypointMarkers.Length < 2)
-        {
-            Debug.LogError("[CartController] waypointMarkers requires >= 2 entries (laneIndex=" + laneIndex + ")");
-            _state = STATE_IDLE;
-            return;
-        }
-
-        int n = waypointMarkers.Length;
-        _waypoints = new Vector3[n];
-        _cumulativeDist = new float[n];
-
-        for (int i = 0; i < n; i++)
-        {
-            _waypoints[i] = waypointMarkers[i].position;
-        }
-
-        _cumulativeDist[0] = 0f;
-        for (int i = 1; i < n; i++)
-        {
-            _cumulativeDist[i] = _cumulativeDist[i - 1] + Vector3.Distance(_waypoints[i - 1], _waypoints[i]);
-        }
-
-        float total = _cumulativeDist[n - 1];
-        _totalDuration = (speed > 0.0001f) ? (total / speed) : 0f;
-
-        transform.position = _waypoints[0];
-        _state = STATE_IDLE;
+        _waypoints = new Vector3[MAX_WAYPOINTS];
+        _cumulativeDist = new float[MAX_WAYPOINTS];
+        _waypointCount = 0;
+        _totalDuration = 0f;
     }
 
     void Update()
     {
-        if (_state != STATE_RUNNING) return;
-        if (_waypoints == null || _waypoints.Length < 2) return;
+        if (gameManager == null) return;
+
+        int gs = gameManager.gameState;
+        if (gs != _lastGameState)
+        {
+            if (gs == GameManager.STATE_RUNNING)
+            {
+                ComputePath(gameManager.seed, laneIndex);
+                if (_waypointCount > 0)
+                {
+                    transform.position = _waypoints[0];
+                }
+            }
+            else if (gs == GameManager.STATE_IDLE)
+            {
+                _waypointCount = 0;
+                _totalDuration = 0f;
+            }
+            _lastGameState = gs;
+        }
+
+        if (gs != GameManager.STATE_RUNNING) return;
+        if (_waypointCount < 2) return;
 
         // ADR-0003: 生の GetServerTimeInSeconds() を引き算してはいけない
         double now = Networking.GetServerTimeInSeconds();
-        double elapsed = Networking.CalculateServerDeltaTime(now, _raceStartTime);
+        double elapsed = Networking.CalculateServerDeltaTime(now, gameManager.raceStartTime);
+
+        if (elapsed < 0.0)
+        {
+            // Countdown バッファ中: 起点で待機
+            transform.position = _waypoints[0];
+            return;
+        }
 
         if (elapsed >= _totalDuration)
         {
-            transform.position = _waypoints[_waypoints.Length - 1];
-            _state = STATE_GOALED;
+            transform.position = _waypoints[_waypointCount - 1];
             return;
         }
 
         float traveled = (float)elapsed * speed;
 
         int segIndex = 0;
-        int last = _waypoints.Length - 1;
-        for (int i = 1; i <= last; i++)
+        for (int i = 1; i < _waypointCount; i++)
         {
             if (_cumulativeDist[i] >= traveled)
             {
@@ -98,20 +98,52 @@ public class CartController : UdonSharpBehaviour
         Vector3 a = _waypoints[segIndex];
         Vector3 b = _waypoints[segIndex + 1];
         transform.position = Vector3.Lerp(a, b, t);
-
-        if (lookAtMovingDirection)
-        {
-            Vector3 dir = b - a;
-            if (dir.sqrMagnitude > 0.0001f)
-            {
-                transform.rotation = Quaternion.LookRotation(dir);
-            }
-        }
     }
 
-    // ADR-0007: VRC_Station と UdonBehaviour が同じ GameObject に同居する構成では、
-    // VRC_Station 自前の Use 表示は出ない(VRChat 仕様で UdonBehaviour 側の Interactable が優先される)。
-    // UdonBehaviour に Interact() を実装し、内部で UseStation() を明示的に呼ぶ必要がある。
+    public void ComputePath(int rngSeed, int startLane)
+    {
+        if (generator == null) return;
+        int currentLane = startLane;
+        int n = 0;
+
+        _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, generator.TOP_Y);
+
+        int segCount = generator.SEGMENT_COUNT;
+        for (int seg = 0; seg < segCount; seg++)
+        {
+            int dir = generator.HasBarForLane(seg, currentLane);
+            if (dir != 0)
+            {
+                float zBar = generator.SegZ(seg);
+                _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, zBar);
+                currentLane += dir;
+                _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, zBar);
+            }
+        }
+        _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, generator.BOTTOM_Y);
+
+        _waypointCount = n;
+
+        _cumulativeDist[0] = 0f;
+        for (int i = 1; i < n; i++)
+        {
+            _cumulativeDist[i] = _cumulativeDist[i - 1]
+                + Vector3.Distance(_waypoints[i - 1], _waypoints[i]);
+        }
+        float total = _cumulativeDist[n - 1];
+        _totalDuration = (speed > 0.0001f) ? (total / speed) : 0f;
+
+        // Phase 3 検証用ログ(Phase 6 で削除)。string.Concat より + 演算子のほうが UdonSharp で安定。
+        string log = "[CartController L" + laneIndex + "] n=" + n
+                     + " dist=" + total + " dur=" + _totalDuration + " goal=" + currentLane;
+        for (int i = 0; i < n; i++)
+        {
+            log = log + " WP[" + i + "]=" + _waypoints[i];
+        }
+        Debug.Log(log);
+    }
+
+    // ADR-0007: VRC_Station と UdonBehaviour 同居構成では Use 表示のため Interact() 実装が必要
     public override void Interact()
     {
         if (station == null) return;
@@ -125,7 +157,6 @@ public class CartController : UdonSharpBehaviour
         if (player == null || !player.isLocal) return;
         _isLocalSeated = true;
         _isExitingByGoal = false;
-        if (startOnEnter) StartRace();
     }
 
     public override void OnStationExited(VRCPlayerApi player)
@@ -137,32 +168,13 @@ public class CartController : UdonSharpBehaviour
 
     private void HandleExit(VRCPlayerApi player)
     {
-        // Phase 4 で _isExitingByGoal=true 分岐(ゴール到達による正常退出)を追加する。
-        // Phase 2 は常に false なので必ずリタイア処理に流れる。
+        // Phase 4 で _isExitingByGoal=true 分岐(正常退出)追加、Phase 3 は常に false
         if (_isExitingByGoal) return;
-
-        _state = STATE_IDLE;
-        if (_waypoints != null && _waypoints.Length > 0)
-        {
-            transform.position = _waypoints[0];
-        }
-        if (lookAtMovingDirection && _waypoints != null && _waypoints.Length >= 2)
-        {
-            Vector3 dir = _waypoints[1] - _waypoints[0];
-            if (dir.sqrMagnitude > 0.0001f)
-            {
-                transform.rotation = Quaternion.LookRotation(dir);
-            }
-        }
+        // Phase 3 ではリタイア時のカート位置操作はしない。
+        // カートは Running 中ならそのまま終端まで走行継続(空席扱いは Phase 4 で
+        // participantPlayerIds[laneIndex] = -1 として正式実装)。
     }
 
-    private void StartRace()
-    {
-        _raceStartTime = Networking.GetServerTimeInSeconds();
-        _state = STATE_RUNNING;
-    }
-
-    // ADR-0007 L60-71 の Phase 2 例外規定: participantPlayerIds[] 参照を _isLocalSeated に置換
     public override void InputJump(bool value, UdonInputEventArgs args)
     {
         if (!value || !_isLocalSeated || station == null) return;

@@ -86,6 +86,10 @@ crashlytics-build.properties
 [Aa]ssets/[Ss]erialized[Uu]don[Pp]rograms/
 [Aa]ssets/[Ss]erialized[Uu]don[Pp]rograms.meta
 
+# シーンごとの UdonSharp SerializedUdonProgramAsset 一時フォルダ(再生成可能・差分ノイズ源)
+/[Aa]ssets/[Ss]cenes/*_[Uu]don[Pp]rogram[Ss]ources/
+/[Aa]ssets/[Ss]cenes/*_[Uu]don[Pp]rogram[Ss]ources.meta
+
 # Local VRChat SDK build cache
 .vrcignore.local
 
