@@ -4922,6 +4922,7 @@ GameObject:
   - component: {fileID: 1929168912}
   - component: {fileID: 1929168914}
   - component: {fileID: 1929168913}
+  - component: {fileID: 1929168915}
   m_Layer: 0
   m_Name: StartButton
   m_TagString: Untagged
@@ -4995,6 +4996,27 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1929168913}
   gameManager: {fileID: 1642574240}
+--- !u!65 &1929168915
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1929168911}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.6, y: 0.6, z: 0.3}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1929274677
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6374,12 +6396,12 @@ MonoBehaviour:
   useAssignedLayers: 0
   DynamicPrefabs: []
   DynamicMaterials:
-  - {fileID: 2100000, guid: 425392b591d361146a31090247416b54, type: 2}
-  - {fileID: 2100000, guid: 3322c78aec12edb42abcdc61e13ebd70, type: 2}
-  - {fileID: 2100000, guid: 7d97feeec5864ed408d93738eb6327ec, type: 2}
   - {fileID: 2100000, guid: aeece366d9043ea44bc4693fcc63aaad, type: 2}
-  - {fileID: 2100000, guid: 2644ef3bbf43f0c43914f021e45d1bf3, type: 2}
+  - {fileID: 2100000, guid: 7d97feeec5864ed408d93738eb6327ec, type: 2}
+  - {fileID: 2100000, guid: 3322c78aec12edb42abcdc61e13ebd70, type: 2}
   - {fileID: 2100000, guid: daee414ae47973e40891898d958e68b7, type: 2}
+  - {fileID: 2100000, guid: 2644ef3bbf43f0c43914f021e45d1bf3, type: 2}
+  - {fileID: 2100000, guid: 425392b591d361146a31090247416b54, type: 2}
   LightMapsNear: []
   LightMapsFar: []
   LightMode: 0
