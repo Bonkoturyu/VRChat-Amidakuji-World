@@ -145,21 +145,33 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 4: 複数カート同時走行 + ゴール処理 [5/24-5/25] [2日]
 
-- [ ] Cart 4台に増やす
+**着手前設計確定(2026-05-21、論点 ①〜⑤)**:
+
+- **着座と `participantPlayerIds[4]`**: GameManager 集約 + Master 一元書込。着座時は CartController から GameManager に登録要求(`SendCustomNetworkEvent` は引数を取れないため、Master 非保持時の引数渡しパターン — Owner 一時委譲 vs `NetworkEventTarget.Owner` + Master 側 Owner 判定 — の選択は実装時に詰める)。Seats[0..3] は別 GameObject を置かず、Cart_n 自身を着座対象として扱う(architecture.md の Seat (Entry) 記述は Phase 2-3 で VRC_Station が Cart 自身に移動した経緯と整合させる)
+- **ゴール検知**: 経路ベース判定(`_state==Running` の Update 内で `elapsed >= _totalDuration` を検出 → `Goaled` 遷移)。trigger collider 方式は不採用(Late Joiner で「自分が見えていない瞬間に通過済」のエッジケースを避けるため)
+- **空席カート**: ゴール count・演出から除外(`participantPlayerIds[lane] == -1` の Cart は `_NotifyCartGoaled` 不要)。空席カートが当たり/爆発演出を出しても体験上意味がないため
+- **ゴール手前バリア**: Phase 1 で物理形状(隙間 1.5 m × 0.5 m)を VR HMD 確認済(commit `f5b6fc8`)。Phase 4 では再調整なし、4 台同時通過の Build & Test 確認のみ
+- **ResultDisplay 遷移**: `STATE_RESULT_DISPLAY=3` を Phase 4 で導入(Phase 3 で番号予約済)。A モードは `finaleCountdownSeconds (Inspector, default 3.0)` 経過後発火 → 1.5 秒 → ResultDisplay、B モードは全員ゴール後 1.5 秒 → ResultDisplay、ResultDisplay 10 秒で Idle 復帰 + `participantPlayerIds[]` 全 -1 リセット + `_goaledCount=0`
+
+実装サブタスク:
+
+- [ ] Cart 4台に増やす(Cart_0 を複製、laneIndex=1,2,3 を設定)
 - [ ] 各カートに座席番号 (0-3) を持たせる
-- [ ] GameManager に `participantPlayerIds[4]` を追加
-- [ ] 着座イベントで参加者登録(Ownership transfer)
-- [ ] スタート時、全カートが同時に走行開始
-- [ ] **ゴール手前バリアの最終形状調整**(カートだけ通って人は通れない物理サイズ検証)
-- [ ] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`
-- [ ] **観戦者がバリアを越えられないことを確認**
+- [ ] GameManager に `participantPlayerIds[4]` を UdonSynced 追加(初期値 -1)
+- [ ] 着座イベントで参加者登録 — `CartController._OnSeated(player)` → `gameManager._RegisterParticipant(lane, pid)`(Master 一元書込、非 Master 時の引数渡しは実装時詰め)
+- [ ] スタート時、全カートが同時に走行開始(Phase 3 の `_OnRaceStarted()` を 4 台分呼出)
+- [ ] 経路ベースゴール検知 — `CartController.Update()` で `_state==Running && elapsed >= _totalDuration` → `_OnReachedGoal()`
+- [ ] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`(`_isExitingByGoal=true` + `station.ExitStation` → `OnStationExited` で TeleportTo 分岐)
+- [ ] 空席カートのゴール count・演出スキップ — `_NotifyCartGoaled` 呼出前に `participantPlayerIds[lane] != -1` をガード
+- [ ] **観戦者がバリアを越えられないことを確認**(Phase 1 確認の再確認のみ)
 - [ ] **ゴール演出の配線**([ADR-0012](./adr/0012-goal-effect-randomized.md))
   - [ ] `GameManager.ComputeEffectAssignment(seed, N, E, C)` 実装 — Fisher-Yates、派生 RNG (`seed ^ 0x000BEEF`)
   - [ ] Inspector フィールド追加: `explosionCount=1 / confettiCount=1 / simultaneousFinale=true / finaleCountdownSeconds=3.0 / prizeAreas[] / finaleSharedAudio`
   - [ ] `PrizeArea.PlayEffect(int kind, bool withIndividualSound)` 実装(または GameManager から直接 SetActive + Play)
-  - [ ] `CartController.OnGoalReached(laneIndex)` から GameManager に通知、B モード時は即発火・A モード時は全カート集計
+  - [ ] `CartController._OnReachedGoal()` から `gameManager._NotifyCartGoaled(laneIndex)` を呼出、B モード時は即発火・A モード時は全カート集計
   - [ ] A モード: 全員ゴール → `SendCustomEventDelayedSeconds(_FireFinale, finaleCountdownSeconds)` → 一斉発火 + `finaleSharedAudio.PlayOneShot` → 1.5 秒後 `EnterResultDisplay`
-  - [ ] B モード: 個別到達瞬間に該当レーンのみ `PlayEffect(kind, true)`、全員ゴール後 `EnterResultDisplay`
+  - [ ] B モード: 個別到達瞬間に該当レーンのみ `PlayEffect(kind, true)`、全員ゴール後 1.5 秒 → `EnterResultDisplay`
+- [ ] `STATE_RESULT_DISPLAY=3` 追加、10 秒経過で `STATE_IDLE` 復帰 + `participantPlayerIds[]` リセット + `_goaledCount=0`
 - [ ] Build & Test で4台同時走行を確認(2クライアントで演出配置が一致することを目視)
 - [ ] A モード / B モード両方を切替えて動作確認
 
@@ -256,7 +268,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 - [ ] 多人数 (可能なら4人) で通しテスト(PC + Quest 混在)
 - [ ] ルール説明パネル最終チェック
-- [ ] ワールド名・サムネイル・説明文設定
+- [ ] ワールド名・サムネイル・説明文設定([BACKLOG.md §ワールドメタデータ](../BACKLOG.md#ワールドメタデータv10-暫定確定--2026-05-21) の暫定確定値を最終調整)
 - [ ] PC版 Private アップロード
 - [ ] Android版 Private アップロード(同じ Blueprint ID)
 - [ ] 友人にDM、Private インスタンスで動作確認
