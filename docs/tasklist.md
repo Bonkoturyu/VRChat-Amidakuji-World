@@ -143,7 +143,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - 距離 68.5 m、所要 34.25 s (speed=2.0 m/s)
 - 両クライアントで経路完全一致、走行中の位置ズレも目視範囲内
 
-## Phase 4: 複数カート同時走行 + ゴール処理 [5/24-5/25] [2日]
+## Phase 4: 複数カート同時走行 + ゴール処理 [5/24-5/25] [2日] ✅ 完了 (2026-05-21、約3日前倒し)
 
 **着手前設計確定(2026-05-21、論点 ①〜⑤)**:
 
@@ -153,29 +153,60 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - **ゴール手前バリア**: Phase 1 で物理形状(隙間 1.5 m × 0.5 m)を VR HMD 確認済(commit `f5b6fc8`)。Phase 4 では再調整なし、4 台同時通過の Build & Test 確認のみ
 - **ResultDisplay 遷移**: `STATE_RESULT_DISPLAY=3` を Phase 4 で導入(Phase 3 で番号予約済)。A モードは `finaleCountdownSeconds (Inspector, default 3.0)` 経過後発火 → 1.5 秒 → ResultDisplay、B モードは全員ゴール後 1.5 秒 → ResultDisplay、ResultDisplay 10 秒で Idle 復帰 + `participantPlayerIds[]` 全 -1 リセット + `_goaledCount=0`
 
+**実装中の方針修正(2026-05-21、Stage A/B で判明)**:
+
+- **演出/TeleportTo を起点 lane → 終点 lane (goalLane) ベースに変更**(Stage A、commit `7098b74` 以前): 初期実装では Cart の起点 `laneIndex` で演出種別とテレポート先を引いていたが、「Prize_n 部屋の属性=演出種別」という設計意図と乖離。CartController に `_goalLaneIndex`(ComputePath で算出)を追加し、`_NotifyCartGoaled(startLane, goalLane)` の 2 引数化 + 演出/Prize 参照は `goalLane` ベースに修正。テレポート先も `prizeAreas[_goalLaneIndex].teleportTarget` を使用。[ADR-0012 §4](./adr/0012-goal-effect-randomized.md#4-賞品エリアテレポート先は固定--spec-12-と無衝突) に明文化(2026-05-21 改訂)
+- **TeleportTo の 1 フレーム遅延化**(commit `7098b74` 以前): `OnStationExited` 内で即時 `TeleportTo` すると VRC_Station の `Player Exit Location` (= Seat) への内部移動が後勝ちで上書きしてしまうため、`SendCustomEventDelayedFrames(_DelayedTeleportToPrize, 1)` で 1 フレーム遅延に変更
+- **`_ApplyState()` の冪等化**(Stage B V5 検証中に判明、本コミットで修正): VRChat の `OnDeserialization` が同値で高頻度発火する仕様により、`_ApplyState()` 内で `_goaledCount=0 / _finaleArmed=false` がリセットされ、さらに各 Cart の `_OnRaceStarted()` → `_hasNotifiedGoal=false` もリセットされて、ゴール演出が 1 ラウンドで 7〜10 回再発火する不具合があった。`_appliedState` フィールドを追加して `gameState` が変化したときのみ遷移処理を実行する設計に変更。副次効果として `Idle/Running` 時の Debug.Log 出力が毎秒数回→1 回に減り、Phase 6 ログ削減 TODO も同時解消
+
 実装サブタスク:
 
-- [ ] Cart 4台に増やす(Cart_0 を複製、laneIndex=1,2,3 を設定)
-- [ ] 各カートに座席番号 (0-3) を持たせる
-- [ ] GameManager に `participantPlayerIds[4]` を UdonSynced 追加(初期値 -1)
-- [ ] 着座イベントで参加者登録 — **パターン A 確定(2026-05-21)**: Cart に `[UdonSynced] int seatedPlayerId` (初期 -1) を追加、`OnStationEntered` で着座者が Cart Owner を取得 + `seatedPlayerId = player.playerId` 書込 + `RequestSerialization` → Master の `Cart.OnDeserialization` で `gameManager._RegisterParticipant(lane, pid)` 呼出 → `participantPlayerIds[lane]` 更新。Master 自身着座時は `OnStationEntered` 内で直接呼出(対称性)。`_RegisterParticipant` は同値 no-op で冪等。退出時は退出者が Cart Owner のまま `seatedPlayerId = -1` 書込。詳細は [architecture.md §着座者同期(Cart 単位)](./architecture.md#着座者同期cart-単位)
-- [ ] スタート時、全カートが同時に走行開始(Phase 3 の `_OnRaceStarted()` を 4 台分呼出)
-- [ ] 経路ベースゴール検知 — `CartController.Update()` で `_state==Running && elapsed >= _totalDuration` → `_OnReachedGoal()`
-- [ ] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`(`_isExitingByGoal=true` + `station.ExitStation` → `OnStationExited` で TeleportTo 分岐)
-- [ ] 空席カートのゴール count・演出スキップ — `_NotifyCartGoaled` 呼出前に `participantPlayerIds[lane] != -1` をガード
-- [ ] **観戦者がバリアを越えられないことを確認**(Phase 1 確認の再確認のみ)
-- [ ] **ゴール演出の配線**([ADR-0012](./adr/0012-goal-effect-randomized.md))
-  - [ ] `GameManager.ComputeEffectAssignment(seed, N, E, C)` 実装 — Fisher-Yates、派生 RNG (`seed ^ 0x000BEEF`)
-  - [ ] Inspector フィールド追加: `explosionCount=1 / confettiCount=1 / simultaneousFinale=true / finaleCountdownSeconds=3.0 / prizeAreas[] / finaleSharedAudio`
-  - [ ] `PrizeArea.PlayEffect(int kind, bool withIndividualSound)` 実装(または GameManager から直接 SetActive + Play)
-  - [ ] `CartController._OnReachedGoal()` から `gameManager._NotifyCartGoaled(laneIndex)` を呼出、B モード時は即発火・A モード時は全カート集計
-  - [ ] A モード: 全員ゴール → `SendCustomEventDelayedSeconds(_FireFinale, finaleCountdownSeconds)` → 一斉発火 + `finaleSharedAudio.PlayOneShot` → 1.5 秒後 `EnterResultDisplay`
-  - [ ] B モード: 個別到達瞬間に該当レーンのみ `PlayEffect(kind, true)`、全員ゴール後 1.5 秒 → `EnterResultDisplay`
-- [ ] `STATE_RESULT_DISPLAY=3` 追加、10 秒経過で `STATE_IDLE` 復帰 + `participantPlayerIds[]` リセット + `_goaledCount=0`
-- [ ] Build & Test で4台同時走行を確認(2クライアントで演出配置が一致することを目視)
-- [ ] A モード / B モード両方を切替えて動作確認
+- [x] Cart 4台に増やす(Cart_0 を複製、laneIndex=1,2,3 を設定)
+- [x] 各カートに座席番号 (0-3) を持たせる
+- [x] GameManager に `participantPlayerIds[4]` を UdonSynced 追加(初期値 -1)
+- [x] 着座イベントで参加者登録 — **パターン A 確定(2026-05-21)**: Cart に `[UdonSynced] int seatedPlayerId` (初期 -1) を追加、`OnStationEntered` で着座者が Cart Owner を取得 + `seatedPlayerId = player.playerId` 書込 + `RequestSerialization` → Master の `Cart.OnDeserialization` で `gameManager._RegisterParticipant(lane, pid)` 呼出 → `participantPlayerIds[lane]` 更新。Master 自身着座時は `OnStationEntered` 内で直接呼出(対称性)。`_RegisterParticipant` は同値 no-op で冪等。退出時は退出者が Cart Owner のまま `seatedPlayerId = -1` 書込。詳細は [architecture.md §着座者同期(Cart 単位)](./architecture.md#着座者同期cart-単位)
+- [x] スタート時、全カートが同時に走行開始(Phase 3 の `_OnRaceStarted()` を 4 台分呼出)
+- [x] 経路ベースゴール検知 — `CartController.Update()` で `_state==Running && elapsed >= _totalDuration` → `_OnReachedGoal()`(`_hasNotifiedGoal` フラグで二重発火防止)
+- [x] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`(`_isExitingByGoal=true` + `station.ExitStation` → `OnStationExited` で 1 フレーム遅延後に `prizeAreas[_goalLaneIndex].teleportTarget` へテレポート)
+- [x] 空席カートのゴール count・演出スキップ — `_NotifyCartGoaled` 内で `participantPlayerIds[startLane] != -1` を `laneOccupied` 判定し、B モードは `laneOccupied && !simultaneousFinale` のときのみ発火
+- [x] **観戦者がバリアを越えられないことを確認**(Phase 1 で確認済、Phase 4 では再確認なし)
+- [x] **ゴール演出の配線**([ADR-0012](./adr/0012-goal-effect-randomized.md))
+  - [x] `GameManager.ComputeEffectAssignment(seed, N, E, C)` 実装 — Fisher-Yates、派生 RNG (`seed ^ 0x000BEEF`)
+  - [x] Inspector フィールド追加: `explosionCount=1 / confettiCount=1 / simultaneousFinale=true / finaleCountdownSeconds=3.0 / prizeAreas[] / finaleSharedAudio`
+  - [x] `PrizeArea.PlayEffect(int kind, bool withIndividualSound)` 実装(`SetActive(true)` + `ParticleSystem.Play()` + 個別 SE の3要素、`ResetEffects()` で `Stop + SetActive(false)`)
+  - [x] `CartController._OnReachedGoal()` から `gameManager._NotifyCartGoaled(startLane, goalLane)` を呼出、B モード時は即発火・A モード時は全カート集計
+  - [x] A モード: 全員ゴール → `SendCustomEventDelayedSeconds(_FireFinale, finaleCountdownSeconds)` → 一斉発火 + `finaleSharedAudio.Play()` → 1.5 秒後 `_EnterResultDisplay`(`withIndividualSound=false` で個別 SE と二重発音を回避)
+  - [x] B モード: 個別到達瞬間に該当レーンのみ `PlayEffect(kind, true)`、全員ゴール後 1.5 秒 → `_EnterResultDisplay`
+- [x] `STATE_RESULT_DISPLAY=3` 追加、10 秒経過で `STATE_IDLE` 復帰 + `participantPlayerIds[]` リセット + `_goaledCount=0`
+- [x] Build & Test で4台同時走行を確認(2クライアントで演出配置が一致することを目視)
+- [x] A モード / B モード両方を切替えて動作確認
 
-**完了基準**: 4人 (またはMaster1人+残ダミー) で同時にゴールまで走り、各自テレポートされる。非参加者は賞品エリアに入れない。爆発・紙吹雪が seed 由来でランダムに配置され、2クライアント間で同じ配置になる
+**完了基準**: 4人 (またはMaster1人+残ダミー) で同時にゴールまで走り、各自テレポートされる。非参加者は賞品エリアに入れない。爆発・紙吹雪が seed 由来でランダムに配置され、2クライアント間で同じ配置になる — ✅ 達成
+
+**Stage A (ClientSim 単独) 検証結果**:
+
+- A モード(simultaneousFinale=true): 全 Cart ゴール → 3 秒カウントダウン → 一斉発火 + 共通 SE ✅
+- B モード(simultaneousFinale=false): 各 Cart 到達瞬間に個別演出発火 ✅
+- リタイア(Jump 退出): Cart Owner のまま seatedPlayerId=-1 書込 → 走行継続 → 該当レーンは空席扱い ✅
+- 設計バグ発見: 演出割当が起点 lane ベースだとプレイヤー視点で「Prize_n 部屋の演出が毎ラウンド変わる」体験になり ADR-0012 の意図と乖離 → 終点 lane ベースに修正
+
+**Stage B (2 クライアント Build & Test) 検証結果** (seed=12345, 観測クライアント=非 Master):
+
+| 項目 | 結果 | 根拠ログ / 補足 |
+|---|---|---|
+| V1 participantPlayerIds 同期 | ✅ (間接確認) | `CartGoaled ... occupied=True/False` が両クライアントで一致(着座した Cart のみ occupied=True) |
+| V2 Owner 委譲 (Interact + SetOwner) | ✅ | `Transferring ownership of Cart_N to {user}` ログ確認 |
+| V3 4 カート同時走行 | ✅ | seed=12345 で 4 Cart の `goal=2,3,0,1` が両クライアントで完全一致、走行中の位置ズレも目視範囲内 |
+| V4 A モード同期発火 | ✅ | カウントダウン後の一斉発火と共通 SE が両クライアントで同タイミング |
+| V5 B モード個別発火同期 | ✅ | Cart_3 (CONFETTI, occupied=True) → Prize_1 で即時発火、両クライアント同タイミング(2026-05-21 19:52:39) |
+| V6 リタイア伝播 | ✅ | 走行中 Jump 退出 → Cart Owner のまま seatedPlayerId=-1 書込 → Master の participantPlayerIds[N]=-1 反映 |
+
+**実機テスト結果サマリ** (seed=12345 固定):
+
+- Effect 割当: Cart_0→goal=2 (NONE), Cart_1→goal=3 (NONE), Cart_2→goal=0 (EXPLOSION), Cart_3→goal=1 (CONFETTI) — `seed ^ 0x000BEEF` 派生 RNG + Fisher-Yates の決定論性確認
+- 走行時間: Cart_0=34.25s, Cart_1=38.25s, Cart_2=42.25s, Cart_3=38.25s (speed=2.0 m/s)
+- `_ApplyState()` 冪等化後、Running 中の Debug.Log 出力は 1 ラウンド 1 回のみ(修正前は毎秒 3〜6 回)
+- CONFETTI 個別発火回数: 修正前=10 回 / 修正後=**1 回** ([commit pending])
 
 ## Phase 5: ゲームフロー UI [5/26] [1日]
 

@@ -106,6 +106,15 @@ SPEC §12 の「カスタム賞品(賞品エリアは固定)」は維持する�
 
 この区分により SPEC §12 の文言を維持したまま機能を足せる。SPEC §12 には「演出は seed 由来でランダム」を明示する注釈を 1 行追加する。
 
+#### 演出割当と TeleportTo は終点 lane (goalLane) ベース
+
+**演出割当の対象は Prize_X(終点 lane)** であり、Cart の起点 lane ではない。`_effectKinds[goalLane]` で各 Prize に演出種別が固定され、Cart は `ComputePath` で算出した `_goalLaneIndex` を経由してその Prize の演出を発火する。
+
+- TeleportTo 先も同じく終点 lane: `prizeAreas[_goalLaneIndex].teleportTarget`
+- `_NotifyCartGoaled(startLane, goalLane)` に両 lane を渡し、空席判定 (`participantPlayerIds[startLane]`) と演出種別/Prize 参照 (`_effectKinds[goalLane]` / `prizeAreas[goalLane]`) で使い分ける
+
+理由: 演出種別は「Prize_n 部屋の属性」として認識されるべきで(ハズレ部屋=爆発、当たり部屋=紙吹雪)、Cart の起点に紐付けると同じプレイヤーが毎ラウンド同じ起点に着座した場合に同じ演出を見続けることになり、賞品エリアの「部屋ごとの個性」が立たないため。Stage A 中に起点 lane ベース実装で初期化したものを、上記理由で終点 lane ベースに修正(2026-05-21 確定)。
+
 ### 5. ステートマシン拡張
 
 A モード時のみ、`Running` と `ResultDisplay` の間に `FinaleCountdown` を挟む。ただし独立ステートにはせず、`Running` 末尾の遷移待ちフェーズとして UI フラグで扱う(同期変数の追加を回避)。
@@ -289,3 +298,4 @@ public class FinaleModeManager : UdonSharpBehaviour {
 - 2026-05-18: 制定(v1.0 ゴール演出の追加スコープを確定)
 - 2026-05-18: §3 に「A モード既定 + B モード切替 UI」確定を追記。§7 を新設し B モード切替 UI と Player Persistence による永続化仕様を定義。§8 に演出発火位置(プレイヤーは演出の中に立つ)を確定として追記
 - 2026-05-18: §7 の Player Persistence セクションを VRChat 公式ドキュメント確認結果で実 API に揃えた。`PlayerData.SetBool / GetBool / TryGetBool` のシグネチャ、`OnPlayerRestored` の発火タイミング(新規入室時のみ)、Master 昇格時の追加フック(`OnPlayerLeft` で再判定)を明示。SDK 3.7.4 以降が前提
+- 2026-05-21: §4 に「演出割当と TeleportTo は Cart 起点 lane ではなく終点 lane (goalLane) ベースで行う」を明記。Phase 4 Stage A で起点 lane ベース実装→終点 lane ベースに修正済み

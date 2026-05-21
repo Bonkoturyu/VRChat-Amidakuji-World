@@ -55,6 +55,11 @@ public class GameManager : UdonSharpBehaviour
     private int _goaledCount;
     private bool _finaleArmed;
 
+    // 直前に _ApplyState() を実行した gameState。-1=未適用 で初回必ず遷移処理を走らせる。
+    // OnDeserialization は同値で何度も発火しうるため、遷移時のみ初期化処理を実行して
+    // _goaledCount/_finaleArmed/Cart._hasNotifiedGoal の不正リセットによる演出再発火を防ぐ。
+    private int _appliedState = -1;
+
     void Start()
     {
         seed = 0;
@@ -97,6 +102,12 @@ public class GameManager : UdonSharpBehaviour
 
     private void _ApplyState()
     {
+        // 同一 gameState の再受信は no-op(冪等化)。
+        // これを外すと OnDeserialization 高頻度発火時に _goaledCount/_finaleArmed が
+        // 毎回 0/false に戻り、Cart 側の _OnReachedGoal が再発火して演出が複数回出る。
+        if (_appliedState == gameState) return;
+        _appliedState = gameState;
+
         if (gameState == STATE_RUNNING)
         {
             if (generator != null) generator.Rebuild(seed);
