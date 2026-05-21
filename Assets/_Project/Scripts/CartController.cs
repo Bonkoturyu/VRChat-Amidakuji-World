@@ -16,7 +16,11 @@ public class CartController : UdonSharpBehaviour
     public GameManager gameManager;
     public AmidakujiGenerator generator;
 
-    // ローカル状態(UdonSynced 0 個、ローカル算出のみ)
+    // 着座者同期(architecture.md §着座者同期 / tasklist Phase 4 パターン A)
+    // Cart Owner が書込 → Master の OnDeserialization で gameManager._RegisterParticipant 集約
+    [UdonSynced] public int seatedPlayerId = -1;
+
+    // ローカル状態
     // 起点1 + (横線渡り 11 段 × 2 waypoint) + 終点1 = 24 が理論上限
     private const int MAX_WAYPOINTS = 24;
     private Vector3[] _waypoints;
@@ -25,6 +29,7 @@ public class CartController : UdonSharpBehaviour
     private float _totalDuration;
     private bool _isLocalSeated;
     private bool _isExitingByGoal;
+    private bool _hasNotifiedGoal;
 
     void Start()
     {
@@ -32,10 +37,10 @@ public class CartController : UdonSharpBehaviour
         _cumulativeDist = new float[MAX_WAYPOINTS];
         _waypointCount = 0;
         _totalDuration = 0f;
+        _hasNotifiedGoal = false;
     }
 
     // GameManager._ApplyState() から同フレームで呼ばれる(Rebuild 完了後)。
-    // これにより Joiner 側でも横線初期化済の状態で ComputePath できる。
     public void _OnRaceStarted()
     {
         if (gameManager == null || generator == null) return;
@@ -44,12 +49,16 @@ public class CartController : UdonSharpBehaviour
         {
             transform.position = _waypoints[0];
         }
+        _hasNotifiedGoal = false;
+        _isExitingByGoal = false;
     }
 
     public void _OnRaceReset()
     {
         _waypointCount = 0;
         _totalDuration = 0f;
+        _hasNotifiedGoal = false;
+        _isExitingByGoal = false;
     }
 
     void Update()
@@ -72,6 +81,12 @@ public class CartController : UdonSharpBehaviour
         if (elapsed >= _totalDuration)
         {
             transform.position = _waypoints[_waypointCount - 1];
+            // 経路ベースゴール検知(各クライアント独立、二重発火防止フラグ)
+            if (!_hasNotifiedGoal)
+            {
+                _hasNotifiedGoal = true;
+                _OnReachedGoal();
+            }
             return;
         }
 
@@ -95,6 +110,20 @@ public class CartController : UdonSharpBehaviour
         Vector3 a = _waypoints[segIndex];
         Vector3 b = _waypoints[segIndex + 1];
         transform.position = Vector3.Lerp(a, b, t);
+    }
+
+    private void _OnReachedGoal()
+    {
+        if (gameManager != null) gameManager._NotifyCartGoaled(laneIndex);
+
+        // 着座者ローカルクライアントのみ: 自分をテレポート扱いで退出させる
+        // OnStationExited 側で _isExitingByGoal 分岐に入り TeleportTo が走る
+        if (_isLocalSeated && station != null)
+        {
+            _isExitingByGoal = true;
+            var local = Networking.LocalPlayer;
+            if (local != null) station.ExitStation(local);
+        }
     }
 
     public void ComputePath(int rngSeed, int startLane)
@@ -130,7 +159,7 @@ public class CartController : UdonSharpBehaviour
         float total = _cumulativeDist[n - 1];
         _totalDuration = (speed > 0.0001f) ? (total / speed) : 0f;
 
-        // Phase 3 検証用ログ(Phase 6 で削除)。string.Concat より + 演算子のほうが UdonSharp で安定。
+        // Phase 3/4 検証用ログ(Phase 6 で削除)。
         string log = "[CartController L" + laneIndex + "] n=" + n
                      + " dist=" + total + " dur=" + _totalDuration + " goal=" + currentLane;
         for (int i = 0; i < n; i++)
@@ -144,6 +173,7 @@ public class CartController : UdonSharpBehaviour
     public override void Interact()
     {
         if (station == null) return;
+        if (gameManager != null && gameManager.gameState != GameManager.STATE_IDLE) return;
         var local = Networking.LocalPlayer;
         if (local == null) return;
         station.UseStation(local);
@@ -151,25 +181,89 @@ public class CartController : UdonSharpBehaviour
 
     public override void OnStationEntered(VRCPlayerApi player)
     {
-        if (player == null || !player.isLocal) return;
-        _isLocalSeated = true;
-        _isExitingByGoal = false;
+        if (player == null) return;
+
+        if (player.isLocal)
+        {
+            _isLocalSeated = true;
+            _isExitingByGoal = false;
+
+            // 着座者が Cart の Owner となり seatedPlayerId を書込 → Master が OnDeserialization で集約
+            if (!Networking.IsOwner(gameObject))
+            {
+                Networking.SetOwner(player, gameObject);
+            }
+            seatedPlayerId = player.playerId;
+            RequestSerialization();
+
+            // Master 自身着座時は OnDeserialization が呼ばれないため直接呼出(対称性)
+            if (Networking.IsMaster && gameManager != null)
+            {
+                gameManager._RegisterParticipant(laneIndex, player.playerId);
+            }
+        }
     }
 
     public override void OnStationExited(VRCPlayerApi player)
     {
         if (player == null) return;
-        if (player.isLocal) _isLocalSeated = false;
-        HandleExit(player);
+
+        if (player.isLocal)
+        {
+            _isLocalSeated = false;
+
+            if (_isExitingByGoal)
+            {
+                // 正常退出(ゴール到達): 賞品エリアへテレポート。
+                // 即時 TeleportTo すると VRC_Station の Player Exit Location (= Seat) への
+                // 内部移動が後勝ちで上書きしてしまうため、1 フレーム遅延で実行する。
+                SendCustomEventDelayedFrames(nameof(_DelayedTeleportToPrize), 1);
+            }
+            else
+            {
+                // リタイア: 参加者枠を空ける(Cart Owner のまま seatedPlayerId=-1 書込)
+                if (!Networking.IsOwner(gameObject))
+                {
+                    Networking.SetOwner(player, gameObject);
+                }
+                seatedPlayerId = -1;
+                RequestSerialization();
+
+                if (Networking.IsMaster && gameManager != null)
+                {
+                    gameManager._RegisterParticipant(laneIndex, -1);
+                }
+            }
+            _isExitingByGoal = false;
+        }
     }
 
-    private void HandleExit(VRCPlayerApi player)
+    public void _DelayedTeleportToPrize()
     {
-        // Phase 4 で _isExitingByGoal=true 分岐(正常退出)追加、Phase 3 は常に false
-        if (_isExitingByGoal) return;
-        // Phase 3 ではリタイア時のカート位置操作はしない。
-        // カートは Running 中ならそのまま終端まで走行継続(空席扱いは Phase 4 で
-        // participantPlayerIds[laneIndex] = -1 として正式実装)。
+        var local = Networking.LocalPlayer;
+        if (local == null) return;
+        _TeleportToPrizeArea(local);
+    }
+
+    private void _TeleportToPrizeArea(VRCPlayerApi player)
+    {
+        if (gameManager == null) return;
+        if (gameManager.prizeAreas == null) return;
+        if (laneIndex < 0 || laneIndex >= gameManager.prizeAreas.Length) return;
+        var area = gameManager.prizeAreas[laneIndex];
+        if (area == null || area.teleportTarget == null) return;
+
+        player.TeleportTo(area.teleportTarget.position, area.teleportTarget.rotation);
+    }
+
+    public override void OnDeserialization()
+    {
+        // Master 集約: Cart Owner 側で seatedPlayerId が更新された後、Master 側がここで反映
+        // (Master 自身が Cart Owner の場合は OnStationEntered/Exited 内で直接呼出済 → 同値 no-op)
+        if (Networking.IsMaster && gameManager != null)
+        {
+            gameManager._RegisterParticipant(laneIndex, seatedPlayerId);
+        }
     }
 
     public override void InputJump(bool value, UdonInputEventArgs args)
