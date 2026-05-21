@@ -158,7 +158,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - [ ] Cart 4台に増やす(Cart_0 を複製、laneIndex=1,2,3 を設定)
 - [ ] 各カートに座席番号 (0-3) を持たせる
 - [ ] GameManager に `participantPlayerIds[4]` を UdonSynced 追加(初期値 -1)
-- [ ] 着座イベントで参加者登録 — `CartController._OnSeated(player)` → `gameManager._RegisterParticipant(lane, pid)`(Master 一元書込、非 Master 時の引数渡しは実装時詰め)
+- [ ] 着座イベントで参加者登録 — **パターン A 確定(2026-05-21)**: Cart に `[UdonSynced] int seatedPlayerId` (初期 -1) を追加、`OnStationEntered` で着座者が Cart Owner を取得 + `seatedPlayerId = player.playerId` 書込 + `RequestSerialization` → Master の `Cart.OnDeserialization` で `gameManager._RegisterParticipant(lane, pid)` 呼出 → `participantPlayerIds[lane]` 更新。Master 自身着座時は `OnStationEntered` 内で直接呼出(対称性)。`_RegisterParticipant` は同値 no-op で冪等。退出時は退出者が Cart Owner のまま `seatedPlayerId = -1` 書込。詳細は [architecture.md §着座者同期(Cart 単位)](./architecture.md#着座者同期cart-単位)
 - [ ] スタート時、全カートが同時に走行開始(Phase 3 の `_OnRaceStarted()` を 4 台分呼出)
 - [ ] 経路ベースゴール検知 — `CartController.Update()` で `_state==Running && elapsed >= _totalDuration` → `_OnReachedGoal()`
 - [ ] ゴール到達時、座っているプレイヤーを賞品エリアへ `TeleportTo`(`_isExitingByGoal=true` + `station.ExitStation` → `OnStationExited` で TeleportTo 分岐)

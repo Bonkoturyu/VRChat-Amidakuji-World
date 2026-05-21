@@ -145,11 +145,9 @@ GameManager.ComputeEffectAssignment(seed, N, E, C)
 - `GameManager.RequestStart()` を呼ぶ
 - ビジュアル状態 (有効/無効) を更新
 
-### Seat (Entry)
+### 着座者同期(Cart 単位)
 
-- VRC_Interact で着座リクエスト
-- gameState == Idle のときのみ反応
-- 自分のレーン番号を `GameManager.participantPlayerIds[]` に登録 (Ownership transfer)
+Phase 2 で VRC_Station は Cart Root に移動済([ADR-0007](./adr/0007-vrcstation-transform-cart.md))、別 Seat GameObject は不要。着座者の `participantPlayerIds[]` への登録は **Cart 側 UdonSynced `seatedPlayerId` + Owner 委譲 + Master `OnDeserialization` 集約** パターンで実装する(2026-05-21 確定)。`OnStationEntered` で着座者が Cart の Owner を取得し `seatedPlayerId = player.playerId` を書込 → `RequestSerialization` → Master の `Cart.OnDeserialization` で `GameManager._RegisterParticipant(lane, pid)` を呼出して `participantPlayerIds[lane]` を更新する。Master 自身の着座時は `OnDeserialization` が呼ばれないため `OnStationEntered` 内で直接呼出して対称性を確保。`_RegisterParticipant` は同値 no-op で冪等(`OnDeserialization` の連鎖発火に対する保険)。退出時は退出者が Cart Owner のまま `seatedPlayerId = -1` を書込み、Master を介して `participantPlayerIds[lane] = -1` に伝播する。**Cart に他の UdonSynced 変数を追加する場合は、着座/退出ごとの Owner 切替が副作用を生まないか要検証**。
 
 ## 観戦システム(追いかけ式)
 
