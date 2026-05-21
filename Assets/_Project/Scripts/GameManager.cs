@@ -167,29 +167,34 @@ public class GameManager : UdonSharpBehaviour
 
     // CartController._OnReachedGoal() から各クライアントが呼ぶ(ネットワークイベントではない)。
     // 各クライアントが独立に Update 内で elapsed >= _totalDuration を検出 → 同タイミング発火。
-    public void _NotifyCartGoaled(int lane)
+    //   startLane: Cart の起点 lane(着座者識別=participantPlayerIds 参照用)
+    //   goalLane:  あみだくじを辿った終点 lane(賞品エリア/演出種別の参照用、ADR-0012)
+    public void _NotifyCartGoaled(int startLane, int goalLane)
     {
         if (carts == null) return;
-        if (lane < 0 || lane >= carts.Length) return;
+        if (startLane < 0 || startLane >= carts.Length) return;
 
         _goaledCount++;
 
         bool laneOccupied = (participantPlayerIds != null
-                             && lane < participantPlayerIds.Length
-                             && participantPlayerIds[lane] != -1);
-        int kind = (_effectKinds != null && lane < _effectKinds.Length) ? _effectKinds[lane] : 0;
+                             && startLane < participantPlayerIds.Length
+                             && participantPlayerIds[startLane] != -1);
+        int kind = (_effectKinds != null && goalLane >= 0 && goalLane < _effectKinds.Length)
+                   ? _effectKinds[goalLane] : 0;
 
-        // B モード: 個別到達時に即発火(空席は演出しない)
+        // B モード: 個別到達時に即発火(空席は演出しない、発火位置は終点 Prize)
         if (!simultaneousFinale && laneOccupied)
         {
-            if (prizeAreas != null && lane < prizeAreas.Length && prizeAreas[lane] != null)
+            if (prizeAreas != null && goalLane >= 0 && goalLane < prizeAreas.Length
+                && prizeAreas[goalLane] != null)
             {
-                prizeAreas[lane].PlayEffect(kind, true);
+                prizeAreas[goalLane].PlayEffect(kind, true);
             }
         }
 
-        Debug.Log("[GameManager] CartGoaled lane=" + lane + " count=" + _goaledCount
-                  + "/" + carts.Length + " kind=" + kind + " occupied=" + laneOccupied);
+        Debug.Log("[GameManager] CartGoaled start=" + startLane + " goal=" + goalLane
+                  + " count=" + _goaledCount + "/" + carts.Length
+                  + " kind=" + kind + " occupied=" + laneOccupied);
 
         // 全カート完走でフィナーレ判定(空席含む)
         if (_goaledCount >= carts.Length && !_finaleArmed)
@@ -209,18 +214,23 @@ public class GameManager : UdonSharpBehaviour
     }
 
     // A モード: 全レーン一斉発火 + 共通 SE 1 発、続けて ResultDisplay 遷移を予約。
+    // 占有判定は Cart の起点 lane(participantPlayerIds[startLane]) で行い、
+    // 発火位置は各 Cart の終点 lane(carts[i].GoalLaneIndex)に対応する Prize で発火する(ADR-0012)。
     public void _FireFinale()
     {
-        if (prizeAreas != null && _effectKinds != null && participantPlayerIds != null)
+        if (carts != null && prizeAreas != null && _effectKinds != null && participantPlayerIds != null)
         {
-            int n = prizeAreas.Length;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < carts.Length; i++)
             {
-                if (prizeAreas[i] == null) continue;
+                if (carts[i] == null) continue;
                 if (i >= participantPlayerIds.Length || participantPlayerIds[i] == -1) continue;
-                int kind = (i < _effectKinds.Length) ? _effectKinds[i] : 0;
+
+                int goalLane = carts[i].GoalLaneIndex;
+                if (goalLane < 0 || goalLane >= prizeAreas.Length) continue;
+                if (prizeAreas[goalLane] == null) continue;
+                int kind = (goalLane < _effectKinds.Length) ? _effectKinds[goalLane] : 0;
                 // withIndividualSound=false: 共通 SE と二重発音を避ける
-                prizeAreas[i].PlayEffect(kind, false);
+                prizeAreas[goalLane].PlayEffect(kind, false);
             }
         }
         if (finaleSharedAudio != null) finaleSharedAudio.Play();

@@ -30,6 +30,11 @@ public class CartController : UdonSharpBehaviour
     private bool _isLocalSeated;
     private bool _isExitingByGoal;
     private bool _hasNotifiedGoal;
+    // ComputePath で算出した終点 lane(あみだくじを辿った結果のゴール先レーン)。
+    // テレポート先 Prize / 演出種別の参照は起点 laneIndex ではなくこの値で行う
+    // (ADR-0012: 演出種別は賞品エリア=終点ベースで割り当て)
+    private int _goalLaneIndex;
+    public int GoalLaneIndex { get { return _goalLaneIndex; } }
 
     void Start()
     {
@@ -38,6 +43,7 @@ public class CartController : UdonSharpBehaviour
         _waypointCount = 0;
         _totalDuration = 0f;
         _hasNotifiedGoal = false;
+        _goalLaneIndex = laneIndex;
     }
 
     // GameManager._ApplyState() から同フレームで呼ばれる(Rebuild 完了後)。
@@ -114,7 +120,7 @@ public class CartController : UdonSharpBehaviour
 
     private void _OnReachedGoal()
     {
-        if (gameManager != null) gameManager._NotifyCartGoaled(laneIndex);
+        if (gameManager != null) gameManager._NotifyCartGoaled(laneIndex, _goalLaneIndex);
 
         // 着座者ローカルクライアントのみ: 自分をテレポート扱いで退出させる
         // OnStationExited 側で _isExitingByGoal 分岐に入り TeleportTo が走る
@@ -149,6 +155,7 @@ public class CartController : UdonSharpBehaviour
         _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, generator.BOTTOM_Y);
 
         _waypointCount = n;
+        _goalLaneIndex = currentLane;
 
         _cumulativeDist[0] = 0f;
         for (int i = 1; i < n; i++)
@@ -249,8 +256,10 @@ public class CartController : UdonSharpBehaviour
     {
         if (gameManager == null) return;
         if (gameManager.prizeAreas == null) return;
-        if (laneIndex < 0 || laneIndex >= gameManager.prizeAreas.Length) return;
-        var area = gameManager.prizeAreas[laneIndex];
+        // ADR-0012: テレポート先はあみだくじの結果到達した「終点 lane」の Prize
+        // (Cart の起点 laneIndex ではなく、ComputePath で算出した _goalLaneIndex を使う)
+        if (_goalLaneIndex < 0 || _goalLaneIndex >= gameManager.prizeAreas.Length) return;
+        var area = gameManager.prizeAreas[_goalLaneIndex];
         if (area == null || area.teleportTarget == null) return;
 
         player.TeleportTo(area.teleportTarget.position, area.teleportTarget.rotation);
