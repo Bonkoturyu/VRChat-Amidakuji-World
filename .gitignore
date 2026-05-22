@@ -148,3 +148,8 @@ ClientSimStorage/
 # Local-only docs (個人情報を含むスタートアッププロンプト等)----------------
 # `.local.md` 拡張子のドキュメントはコミット対象外
 *.local.md
+
+# TextMesh Pro samples ------------------------------------------------------
+# 本プロジェクトで未使用のサンプル資産。誤って大量追加されるのを防ぐ。
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/[Ee]xamples & [Ee]xtras/
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/[Ee]xamples & [Ee]xtras.meta
