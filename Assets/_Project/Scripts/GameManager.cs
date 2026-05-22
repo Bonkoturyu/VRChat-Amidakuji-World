@@ -12,9 +12,6 @@ public class GameManager : UdonSharpBehaviour
     public const int STATE_RUNNING = 2;
     public const int STATE_RESULT_DISPLAY = 3;
 
-    // 3 秒のクロック同期バッファ(VRChat Sync 遅延吸収用)
-    public const float COUNTDOWN_BUFFER = 3.0f;
-
     // 1 ラウンド終端の演出視認時間 → ResultDisplay 遷移
     public const float POST_FINALE_DELAY = 1.5f;
 
@@ -29,6 +26,10 @@ public class GameManager : UdonSharpBehaviour
     public CartController[] carts;
     public PrizeArea[] prizeAreas;
     public AudioSource finaleSharedAudio;
+    [Tooltip("冒頭 3-2-1 と A モード末尾 FinaleCountdown 用 UI 群(Phase 5)。配列の最初の要素にだけ FinaleCountdown コールバックを渡す(複数発火防止)")]
+    public CountdownUI[] countdownUIs;
+    [Tooltip("ResultDisplay 掲示 UI(Phase 5)")]
+    public ResultDisplayUI resultDisplayUI;
 
     [Header("Debug / Reproducibility")]
     [Tooltip("ON のとき debugSeed をそのまま使う(再現テスト用、本番は OFF)")]
@@ -36,12 +37,14 @@ public class GameManager : UdonSharpBehaviour
     public int debugSeed = 12345;
 
     [Header("Finale (ADR-0012)")]
+    [Tooltip("冒頭 3-2-1 カウントダウンの秒数(Sync 遅延吸収バッファ兼用)。5.0 にすると 5-4-3-2-1 表示")]
+    public float startupCountdownSeconds = 3.0f;
     [Tooltip("爆発演出を割り当てるレーン数")]
     public int explosionCount = 1;
     [Tooltip("紙吹雪演出を割り当てるレーン数")]
     public int confettiCount = 1;
     [Tooltip("true=A モード(全員ゴール後一斉発火) / false=B モード(個別到達時即発火)")]
-    public bool simultaneousFinale = true;
+    [UdonSynced] public bool simultaneousFinale = true;
     [Tooltip("A モード時のカウントダウン秒数")]
     public float finaleCountdownSeconds = 3.0f;
 
@@ -87,7 +90,7 @@ public class GameManager : UdonSharpBehaviour
         }
 
         seed = useDebugSeed ? debugSeed : (int)System.DateTime.Now.Ticks;
-        raceStartTime = Networking.GetServerTimeInSeconds() + COUNTDOWN_BUFFER;
+        raceStartTime = Networking.GetServerTimeInSeconds() + startupCountdownSeconds;
         gameState = STATE_RUNNING;
         RequestSerialization();
 
@@ -128,6 +131,21 @@ public class GameManager : UdonSharpBehaviour
                     if (carts[i] != null) carts[i]._OnRaceStarted();
                 }
             }
+            // Phase 5: 冒頭 Countdown UI を起動。Cart 側は CalculateServerDeltaTime(raceStartTime, now) が
+            // 負の間は起点で待機するため、ここでは UI 表示のみで callback は不要(空文字)。
+            if (countdownUIs != null)
+            {
+                for (int i = 0; i < countdownUIs.Length; i++)
+                {
+                    if (countdownUIs[i] == null) continue;
+                    // 賞品エリア内 Canvas など FinaleCountdown 専用の UI は冒頭ではスキップ
+                    // (冒頭時点で賞品エリアには誰もいない + ここで非 Active 化されると
+                    //  UdonSharp 制約で末尾 FinaleCountdown の再起動が届かないため)
+                    if (countdownUIs[i].isFinaleOnly) continue;
+                    // 冒頭 Countdown はコールバック不要(Cart 側で raceStartTime 到達を独自判定して走り出すため)
+                    countdownUIs[i]._StartCountdown(raceStartTime, "", false);
+                }
+            }
             Debug.Log("[GameManager] state=Running seed=" + seed + " raceStart=" + raceStartTime);
         }
         else if (gameState == STATE_IDLE)
@@ -147,12 +165,21 @@ public class GameManager : UdonSharpBehaviour
                     if (prizeAreas[i] != null) prizeAreas[i].ResetEffects();
                 }
             }
+            if (countdownUIs != null)
+            {
+                for (int i = 0; i < countdownUIs.Length; i++)
+                {
+                    if (countdownUIs[i] != null) countdownUIs[i]._CancelCountdown();
+                }
+            }
+            if (resultDisplayUI != null) resultDisplayUI._Hide();
             _goaledCount = 0;
             _finaleArmed = false;
             Debug.Log("[GameManager] state=Idle");
         }
         else if (gameState == STATE_RESULT_DISPLAY)
         {
+            if (resultDisplayUI != null) resultDisplayUI._Show();
             Debug.Log("[GameManager] state=ResultDisplay");
         }
     }
@@ -213,8 +240,31 @@ public class GameManager : UdonSharpBehaviour
             _finaleArmed = true;
             if (simultaneousFinale)
             {
-                // A モード: カウントダウン後に一斉発火
-                SendCustomEventDelayedSeconds(nameof(_FireFinale), finaleCountdownSeconds);
+                // UI 表示同期のため SendCustomEventDelayedSeconds から CountdownUI 経由に置換。
+                // CountdownUI が targetServerTime をサーバー時刻ベースで監視し、0 到達で _FireFinale を発火する。
+                if (countdownUIs != null && countdownUIs.Length > 0)
+                {
+                    double targetTime = Networking.GetServerTimeInSeconds() + finaleCountdownSeconds;
+                    bool anyStarted = false;
+                    for (int i = 0; i < countdownUIs.Length; i++)
+                    {
+                        if (countdownUIs[i] == null) continue;
+                        // 配列の最初の有効な要素にだけ _FireFinale コールバックを渡す(複数発火防止)
+                        string cb = anyStarted ? "" : nameof(_FireFinale);
+                        countdownUIs[i]._StartCountdown(targetTime, cb, true);
+                        anyStarted = true;
+                    }
+                    if (!anyStarted)
+                    {
+                        // 全要素が null だった場合の保険(従来の直叩きにフォールバック)
+                        SendCustomEventDelayedSeconds(nameof(_FireFinale), finaleCountdownSeconds);
+                    }
+                }
+                else
+                {
+                    // CountdownUI 未バインド時の保険(従来の直叩きにフォールバック)
+                    SendCustomEventDelayedSeconds(nameof(_FireFinale), finaleCountdownSeconds);
+                }
             }
             else
             {

@@ -192,6 +192,13 @@ public class CartController : UdonSharpBehaviour
 
         if (player.isLocal)
         {
+            // Idle 以外で着座した場合は即時退出(走行中・ResultDisplay 中の再着座を防止)
+            if (gameManager != null && gameManager.gameState != GameManager.STATE_IDLE)
+            {
+                if (station != null) station.ExitStation(player);
+                return;
+            }
+
             _isLocalSeated = true;
             _isExitingByGoal = false;
 
