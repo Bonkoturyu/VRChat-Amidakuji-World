@@ -12,7 +12,7 @@ VRChatのUdon Syncは帯域制限が厳しく、頻繁な同期は接続不安�
 同期する変数を以下の4種に限定する:
 
 | 変数 | 型 | 説明 |
-|---|---|---|
+| --- | --- | --- |
 | `seed` | int | あみだくじ生成シード |
 | `gameState` | int (enum) | ステート (Idle/Countdown/Running/ResultDisplay) |
 | `raceStartTime` | double | レース開始サーバー時刻 |

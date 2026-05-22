@@ -15,7 +15,7 @@
 - [x] Phase 1: 平面水平あみだくじ床(MainFloor + 縦線・横線、Mobile考慮)の VR HMD 実機確認
 - [x] Phase 2: カート単体走行 + 歩行者非衝突レイヤー設定(走行中の干渉確認のみ Phase 3 に持ち越し、停止カートで Layer 設計は検証済み)
 - [ ] Phase 3: ランダム生成 + seed同期 (2クライアントで一致確認)
-- [ ] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール手前バリア
+- [x] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール演出(2026-05-21 完了、約3日前倒し。`_ApplyState()` 冪等化で OnDeserialization 高頻度発火問題を解消、演出割当は終点 lane ベースに修正 [ADR-0012 §4](./docs/adr/0012-goal-effect-randomized.md))
 - [ ] Phase 5: ゲームフロー UI 完成
 - [ ] Phase 6: Late Joiner / エッジケース対応 (PC)
 - [ ] Phase 7: Android Platform 切替 + 初期最適化
@@ -57,7 +57,7 @@
   - 一時停止トラップ
   - ボーナスゴール
 - [ ] CI整備(Markdownリント、ADR形式チェック、ユニットテスト追加 → `docs/dev-workflow.md` 参照)
-  - 含むもの: リポジトリ全体の Markdown テーブルスタイル統一(現状 ADR-0007 等で MD060 警告。データ行は spaced・セパレータ行は compact の混在)、ADR フロントマター形式チェック、ファイル末尾改行など
+  - 含むもの: `.markdownlint.json` 追加で将来の違反を機械的に防止(MD060 / MD040 / MD031 のリポジトリ全体統一は 2026-05-22 に手作業で解消済み)、ADR フロントマター形式チェック、ファイル末尾改行など
 - [ ] リプレイ機能(直前レースの再生)
 
 ## 課題・既知の制約

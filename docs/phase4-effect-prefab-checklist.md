@@ -34,7 +34,7 @@
 
 ### 1.1 Prefab 内部構造
 
-```
+```text
 ExplosionEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 ├── Fireball (ParticleSystem, Material: M_FX_Explosion_Fireball)
 ├── Smoke (ParticleSystem, Material: M_FX_Explosion_Smoke)
@@ -46,7 +46,7 @@ Prefab Root は **配置時 inactive** で保存(`SetActive(false)`)。`PrizeAre
 ### 1.2 Fireball(火球)ParticleSystem 設定
 
 | モジュール | パラメータ | 値 |
-|---|---|---|
+| --- | --- | --- |
 | **Main** | Duration | 1.5 |
 | | Looping | OFF |
 | | Start Lifetime | 1.2 |
@@ -74,7 +74,7 @@ Prefab Root は **配置時 inactive** で保存(`SetActive(false)`)。`PrizeAre
 ### 1.3 Smoke(煙)ParticleSystem 設定
 
 | モジュール | パラメータ | 値 |
-|---|---|---|
+| --- | --- | --- |
 | **Main** | Duration | 3.0 |
 | | Looping | OFF |
 | | Start Delay | 0.2(火球より少し遅れて噴出) |
@@ -102,7 +102,7 @@ Prefab Root は **配置時 inactive** で保存(`SetActive(false)`)。`PrizeAre
 ### 1.4 AudioSource 設定(Root にアタッチ)
 
 | パラメータ | 値 |
-|---|---|
+| --- | --- |
 | AudioClip | **未設定**(Phase 8 で爆発 SE をアサイン) |
 | Play On Awake | **OFF**(`PlayEffect()` から PlayOneShot で再生) |
 | Loop | OFF |
@@ -119,7 +119,7 @@ Prefab Root は **配置時 inactive** で保存(`SetActive(false)`)。`PrizeAre
 
 ### 2.1 Prefab 内部構造
 
-```
+```text
 ConfettiEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 ├── Confetti (ParticleSystem, Material: M_FX_Confetti)
 └── AudioSource (Component on Root)
@@ -128,7 +128,7 @@ ConfettiEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 ### 2.2 Confetti(紙片)ParticleSystem 設定
 
 | モジュール | パラメータ | 値 |
-|---|---|---|
+| --- | --- | --- |
 | **Main** | Duration | 0.5 |
 | | Looping | OFF |
 | | Start Lifetime | 3.0 |
@@ -157,7 +157,7 @@ ConfettiEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 ### 2.3 AudioSource 設定(Root にアタッチ)
 
 | パラメータ | 値 |
-|---|---|
+| --- | --- |
 | AudioClip | **未設定**(Phase 8 で紙吹雪 SE をアサイン) |
 | Play On Awake | OFF |
 | Loop | OFF |
@@ -175,7 +175,7 @@ ConfettiEffect (Root, Empty GameObject, Layer: Default, 既定 inactive)
 
 ### 3.1 変更後の内部構造
 
-```
+```text
 Prize_X (Root, Rotation Y=180、既存維持)
 ├── Walls/             ← 既存維持
 ├── Ceiling            ← 既存維持
@@ -185,7 +185,7 @@ Prize_X (Root, Rotation Y=180、既存維持)
 ```
 
 | 追加配置 | Position(ローカル) | 備考 |
-|---|---|---|
+| --- | --- | --- |
 | `ExplosionEffect` | (0, 0, 0) | 部屋中央床面、SetActive(false) 既定 |
 | `ConfettiEffect` | (0, 0, 0) | 同上、SetActive(false) 既定 |
 
@@ -194,7 +194,7 @@ Prize_X (Root, Rotation Y=180、既存維持)
 `PrizeArea.cs`(UdonSharp)を Prize_X Root にアタッチ。
 
 | Inspector フィールド | 型 | 用途 |
-|---|---|---|
+| --- | --- | --- |
 | `teleportTarget` | Transform | 既存 TeleportTarget の Transform |
 | `explosionEffect` | GameObject | 子の ExplosionEffect |
 | `confettiEffect` | GameObject | 子の ConfettiEffect |
@@ -225,14 +225,14 @@ public void PlayEffect(int kind, bool withIndividualSound) {
 
 `_Managers/GameManager` GameObject の子に AudioSource を 1 個追加。
 
-```
+```text
 _Managers/
 └── GameManager
     └── FinaleSharedAudio (AudioSource, Component)
 ```
 
 | パラメータ | 値 |
-|---|---|
+| --- | --- |
 | AudioClip | **未設定**(Phase 8 で「パパーン」共通音をアサイン) |
 | Play On Awake | OFF |
 | Loop | OFF |

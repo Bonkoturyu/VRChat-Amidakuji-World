@@ -28,7 +28,7 @@ VRChat OSS界隈(UdonSharp, lilToon, ClientSim, AudioLink, VRCFury 等)はMITが
 
 リポジトリルートは Unity プロジェクトのルートと一致させる:
 
-```
+```text
 amidakuji-world/        ← Git Root = Unity Project Root
 ├── .git/
 ├── .gitignore
@@ -112,7 +112,8 @@ Conventional Commits ライクに、軽めの規約を採用:
 - `test: 〜` テスト関連
 
 例:
-```
+
+```text
 feat(cart): カート単体走行を実装 (Phase 2)
 fix(generator): seedから生成した横線の連続禁止チェックを修正
 docs: ADR-0007 にVRトリガー退出の制約を追記
@@ -166,7 +167,7 @@ UdonSharp は Udon Assembly にコンパイルされ、Udon VM 上で動くた�
 
 **「Pure C# Logic クラス」と「UdonSharpBehaviour ラッパー」を分離する**ことで、ロジックを通常の C# としてテスト可能にする。
 
-```
+```text
 Assets/_Project/Scripts/
 ├── Logic/                        ← UnityEditor非依存、UdonSharp非依存
 │   ├── AmidakujiLogic.cs        ← 横線生成アルゴリズム
@@ -238,7 +239,7 @@ VRChat には「Build時にPublic/Private選択」のような単純なトグル
 
 ### 状態遷移
 
-```
+```text
 [SDK Build & Upload]
         ↓
    Private (自動)
@@ -259,7 +260,7 @@ VRChat には「Build時にPublic/Private選択」のような単純なトグル
 ### Build & Upload と Build & Test の使い分け
 
 | 操作 | 動作 | 用途 |
-|---|---|---|
+| --- | --- | --- |
 | `Build & Test` | ローカルクライアントで一時起動 | 単体ローカルテスト、毎日の動作確認 |
 | `Build & Test (Multi-Client)` | ローカル複数クライアント起動 | 多人数同期テスト |
 | `Build & Upload` | VRChatサーバにアップロード(Private) | 実機HMD検証、Late Joinerテスト |
@@ -325,7 +326,7 @@ PC 版と Android 版は **同じ Blueprint ID** で紐づける必要がある�
 
 ### 10.5 開発ループ(Phase 7 以降)
 
-```
+```text
 1. Windows 版で機能追加・修正
 2. Build & Test (PC) で動作確認
 3. Build & Upload (PC) で Private アップロード

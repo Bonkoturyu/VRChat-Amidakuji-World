@@ -10,7 +10,7 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 
 ## 1. ルート Hierarchy
 
-```
+```text
 [Scene Root]
 ├── _World/                       ← ワールド要素の organizational root
 │   ├── Environment/              ← 装飾・空(Static)
@@ -83,7 +83,7 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 ### 2.1 Prefab化するもの (再利用あり)
 
 | Prefab | インスタンス数 | 可変項目 (Inspector) | 内容 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `VerticalLine.prefab` | 4 | なし(Transform位置のみ) | 縦線(細い Cube、高さ 2 cm × 幅 0.2 m × 長さ 60 m) |
 | `HorizontalBar.prefab` | 最大33 | なし | 横線(細い Cube、高さ 2 cm × 幅 4.0 m × 長さ 0.2 m)、11 段 × 3 ペア |
 | `GoalBarrier.prefab` | 4 | `laneIndex (0-3)` | ゴール手前壁(カート用隙間あり) |
@@ -94,7 +94,7 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 ### 2.2 Prefab化しないもの (一意・シーン固有)
 
 | GameObject | 理由 |
-|---|---|
+| --- | --- |
 | `MainFloor` | 一意。シーン全体で 1 枚の大型 Cube(18 × 0.2 × 80 m) |
 | `GameManager` | シングルトン。Synced 変数のオーナー |
 | `AmidakujiGenerator` | シングルトン |
@@ -109,7 +109,7 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 
 ### 3.1 Cart.prefab
 
-```
+```text
 Cart_X (GameObject, Transform 位置 = 起点)  [Layer: Cart]
 ├── Visual/                       ← 見た目モデル
 │   ├── Body (Mesh Renderer)
@@ -127,7 +127,7 @@ Cart_X (GameObject, Transform 位置 = 起点)  [Layer: Cart]
 
 ### 3.2 GoalBarrier.prefab
 
-```
+```text
 Barrier_X (GameObject)                       [Layer: GoalBarrier]
 ├── WallLeft (Mesh + Collider)               ← 隙間の左側の壁
 ├── WallRight (Mesh + Collider)              ← 隙間の右側の壁
@@ -141,7 +141,7 @@ Barrier_X (GameObject)                       [Layer: GoalBarrier]
 
 ### 3.3 Seat.prefab
 
-```
+```text
 Seat_X (GameObject)
 ├── Visual/                       ← 着座位置を示すマーカー(灰色、ADR-0011 で Cart-only color 方針)
 └── InteractTrigger (Collider, IsTrigger=true)
@@ -154,7 +154,7 @@ Seat_X (GameObject)
 
 ### 3.4 HorizontalBar.prefab
 
-```
+```text
 Bar_LX_SXX (GameObject)
 └── LineMesh (Primitive Cube, Mesh + Box Collider)
 ```
@@ -167,7 +167,7 @@ Bar_LX_SXX (GameObject)
 
 ### 3.5 VerticalLine.prefab
 
-```
+```text
 VLine_X (GameObject)
 └── LineMesh (Primitive Cube, Mesh + Box Collider)
 ```
@@ -179,7 +179,7 @@ VLine_X (GameObject)
 
 ### 3.6 PrizeArea.prefab
 
-```
+```text
 Prize_X (GameObject, Root Rotation Y=180)
 ├── Walls/
 │   ├── Wall_N (奥側、+Z 側)
@@ -204,7 +204,7 @@ Prize_X (GameObject, Root Rotation Y=180)
 ### 4.1 Layer 定義
 
 | Layer | 用途 | 設定先 |
-|---|---|---|
+| --- | --- | --- |
 | `Default` (0) | 通常オブジェクト | 大半 |
 | `Player` (9) | VRChat予約 | (システム、リモートプレイヤー) |
 | `PlayerLocal` (10) | VRChat予約 | (システム、ローカルプレイヤー) |
@@ -215,7 +215,7 @@ Prize_X (GameObject, Root Rotation Y=180)
 ### 4.2 物理コリジョン Matrix (Project Settings > Physics)
 
 | | Default | Player | PlayerLocal | Cart | GoalBarrier |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Default | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Player | ✓ | ✓ | ✓ | **✗** | ✓ |
 | PlayerLocal | ✓ | ✓ | ✓ | **✗** | ✓ |
@@ -239,7 +239,7 @@ Prize_X (GameObject, Root Rotation Y=180)
 Static Batching・Light Baking のため、以下の方針:
 
 | 対象 | Static フラグ |
-|---|---|
+| --- | --- |
 | Environment 装飾 | **All Static** |
 | MainFloor(単一の床 Cube) | **All Static** |
 | VerticalLine Prefab(縦線) | **All Static**(常時表示) |
@@ -264,7 +264,7 @@ Phase 2 着手中の確定値は [tasklist.md](./tasklist.md) Phase 2 サブタ�
 
 **Phase 2 暫定** (CartController 単独実装、ローカル走行検証用):
 
-```
+```csharp
 [Serializable Fields]
 - public int laneIndex                  // 0-3
 - public float speed = 2.0f
@@ -278,7 +278,7 @@ Phase 2 着手中の確定値は [tasklist.md](./tasklist.md) Phase 2 サブタ�
 
 **Phase 3 以降** (GameManager / AmidakujiGenerator 統合後):
 
-```
+```csharp
 [Serializable Fields]
 - public int laneIndex                  // 0-3
 - public float speed = 2.0f
@@ -294,7 +294,7 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 
 ### SeatInteract (Seat.prefab Root)
 
-```
+```csharp
 - public int seatIndex
 - public GameManager gameManager
 - public CartController targetCart // 紐づくカートへの参照(着座すると Cart の Station へ転送)
@@ -302,7 +302,7 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 
 ### StartButton (シーン専用)
 
-```
+```csharp
 - public GameManager gameManager
 - public Renderer buttonRenderer  // 色変化用
 - public Material activeMaterial
@@ -311,7 +311,7 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 
 ### GameManager (シーン専用)
 
-```
+```csharp
 - public AmidakujiGenerator generator
 - public CartController[] carts       // 4要素配列(シーンで埋める)
 - public SeatInteract[] seats         // 4要素
@@ -322,7 +322,7 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 
 ### AmidakujiGenerator (シーン専用)
 
-```
+```csharp
 - public GameObject[] horizontalBars  // 全パターンを1次元配列で保持
                                        // [lanePair * SEGMENT_COUNT + segment] でアクセス
                                        // (lanePair = 0..2、3 ペア × 11 段 = 33 個)
@@ -408,7 +408,7 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 
 ## 8. ワールド俯瞰イメージ (TOP-DOWN VIEW、Y=0 平面)
 
-```
+```text
                        +Z(EntryArea 側、奥)
                         ↑
        ┌────────────────────────────────────────────────┐

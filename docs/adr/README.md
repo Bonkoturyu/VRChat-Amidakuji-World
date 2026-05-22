@@ -6,7 +6,7 @@
 ## Index
 
 | ID | Title | Status |
-|---|---|---|
+| --- | --- | --- |
 | [ADR-0001](./0001-cart-based-design.md) | あみだくじ体験方式に「カート式 (B案)」を採用 | Accepted |
 | [ADR-0002](./0002-deterministic-rng-seed-sync.md) | 決定論的乱数 + seed同期による横線生成 | Accepted |
 | [ADR-0003](./0003-precomputed-waypoint-lerp.md) | カート移動を事前計算Waypoint + Lerp補間で実装 | Accepted |

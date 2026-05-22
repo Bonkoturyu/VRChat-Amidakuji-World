@@ -5,7 +5,7 @@
 
 ## システム構成
 
-```
+```text
 World Scene
 ├── GameManager (UdonBehaviour)                ← ステート・同期の中枢
 ├── AmidakujiGenerator (UdonBehaviour)         ← seedから配置算出
@@ -34,7 +34,7 @@ World Scene
 カートと歩行者が同じ空間を使用するため、衝突分離が必須。
 
 | Layer | 用途 |
-|---|---|
+| --- | --- |
 | `Default` (0) | 通常オブジェクト、世界の床・壁 |
 | `Player` (9) | VRChat予約、リモートプレイヤー |
 | `PlayerLocal` (10) | VRChat予約、ローカルプレイヤー |
@@ -50,7 +50,7 @@ Edit > Project Settings > Physics で:
 
 ## データフロー(レーススタート時シーケンス)
 
-```
+```text
 [Master] StartButton.Interact()
    │
    ▼
@@ -165,7 +165,7 @@ Phase 2 で VRC_Station は Cart Root に移動済([ADR-0007](./adr/0007-vrcstat
 
 ### 動線
 
-```
+```text
 [Spawn] → [EntryArea (最上部)] → 縦線・横線を歩いて下降 → [Goal Barriers]
                                                             ↑ ここで止まる
                                                           (カートだけ通過)
@@ -193,12 +193,13 @@ Phase 2 で VRC_Station は Cart Root に移動済([ADR-0007](./adr/0007-vrcstat
 1. `OnDeserialization` で seed/state/startTime を受信
 2. `AmidakujiGenerator.Rebuild(seed)` で横線配置を復元
 3. 各 `CartController.ComputePath(seed, lane)` で経路復元
-4. `Update()` 内で:
-   ```
+4. `Update()` 内で時刻計算 → 現在位置を補間して即座にカート位置を表示:
+
+   ```csharp
    double now     = Networking.GetServerTimeInSeconds();
    double elapsed = Networking.CalculateServerDeltaTime(now, raceStartTime);
    ```
-   から現在位置を補間して即座にカート位置を表示
+
 5. 既にゴール済みのカート(elapsed > totalPathTime)は終端位置で停止
 6. 自分はあみだくじ最上部にスポーン誘導(参加不可状態、観戦に参加)
 
@@ -213,7 +214,7 @@ Phase 2 で VRC_Station は Cart Root に移動済([ADR-0007](./adr/0007-vrcstat
 
 正しいパターン:
 
-```
+```csharp
 double now     = Networking.GetServerTimeInSeconds();
 double elapsed = Networking.CalculateServerDeltaTime(now, raceStartTime);
 ```

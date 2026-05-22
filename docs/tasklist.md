@@ -193,7 +193,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 **Stage B (2 クライアント Build & Test) 検証結果** (seed=12345, 観測クライアント=非 Master):
 
 | 項目 | 結果 | 根拠ログ / 補足 |
-|---|---|---|
+| --- | --- | --- |
 | V1 participantPlayerIds 同期 | ✅ (間接確認) | `CartGoaled ... occupied=True/False` が両クライアントで一致(着座した Cart のみ occupied=True) |
 | V2 Owner 委譲 (Interact + SetOwner) | ✅ | `Transferring ownership of Cart_N to {user}` ログ確認 |
 | V3 4 カート同時走行 | ✅ | seed=12345 で 4 Cart の `goal=2,3,0,1` が両クライアントで完全一致、走行中の位置ズレも目視範囲内 |
@@ -210,22 +210,30 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 5: ゲームフロー UI [5/26] [1日]
 
-- [ ] ステートマシン実装 (Idle/Countdown/Running/ResultDisplay)
-- [ ] スタートボタン: Master判定、参加者0人時の無効化
-- [ ] カウントダウン演出 (3-2-1)
-- [ ] **A モード時の FinaleCountdown UI** を Countdown UI に統合(同じ 3-2-1 表示機構を Running 末尾でも再利用、独立ステートにはしない)
-- [ ] **演出モード切替トグル UI** をスタートボタン付近に配置(SPEC §7.3 / [ADR-0012](./adr/0012-goal-effect-randomized.md))
-  - [ ] Master 限定 + `gameState==Idle` 時のみ反応、それ以外はグレーアウト
-  - [ ] 押下で `gameManager.simultaneousFinale` を反転
-- [ ] **Player Persistence による永続化**(同一人物の再 Master 時に B モード設定を復元)
-  - [ ] トグル操作時に `PlayerData.SetBool("amidakuji.simultaneousFinale", value)` を呼ぶ
-  - [ ] `OnPlayerRestored(VRCPlayerApi player)` で `player.isLocal && player.isMaster` のとき復元 + `RequestSerialization` で他クライアントに伝播
-  - [ ] **着手時に VRChat Creators Hub で `PlayerData` API の最新シグネチャを再確認**(2024 SDK 機能のため名称変動の可能性)
-- [ ] 結果表示掲示(エントリーエリアの掲示UI、「席n → ゴールm」)
-- [ ] 着座制御 (Idle中のみ可)
-- [ ] ResultDisplay → Idle 自動遷移 (10秒)
+**着手前設計確定(2026-05-22)**:
 
-**完了基準**: 一連の流れがUI操作だけで回せる
+- ステートマシン拡張は **独立ステート追加なし**(案 2 確定、[ADR-0012 §5](./adr/0012-goal-effect-randomized.md#5-ステートマシン拡張) 改訂)。`STATE_COUNTDOWN=1` は番号予約のまま温存、`gameState == STATE_RUNNING && raceStartTime - serverTime > 0` を冒頭 Countdown UI フェーズとして UI 側で扱う(`raceStartTime = now + COUNTDOWN_BUFFER (3.0s)` で Sync 遅延吸収と UI 表示時間を統合)
+- `ResultDisplay → Idle 自動遷移 (10秒)` は [GameManager._ReturnToIdle()](../Assets/_Project/Scripts/GameManager.cs#L270) で実装済(Phase 4 で完了)
+- 前提確認: VRChat World SDK ≥ 3.7.4(現行 3.10.3 ✅ 確認済 2026-05-22)、Player Persistence API シグネチャは [ADR-0012 §7](./adr/0012-goal-effect-randomized.md#7-b-モード切替-ui-と-player-persistence-による永続化) 確定済
+
+実装サブタスク(`5-1 / 5-2 / 5-3 / 5-4` は並列着手可、`5-5 → 5-6` は順序依存、`5-8` は 5-1 完了後、`5-7` は独立):
+
+- [ ] **5-1 CountdownUI 実装**(新規) — 3-2-1 表示、`raceStartTime` ベースで毎フレーム更新。冒頭 Countdown フェーズと A モード末尾 FinaleCountdown フェーズの両方で再利用可能な単一 Component。`StartCountdown(seconds, callbackEventName)` API を持つ
+- [ ] **5-2 StartButton 強化** — 既存 [StartButton.cs](../Assets/_Project/Scripts/StartButton.cs) を改修:
+  - [ ] 参加者人数チェック(`participantPlayerIds[] != -1` の数 ≥ 1)
+  - [ ] `gameState != STATE_IDLE` で interact 無効化
+  - [ ] 視覚 Material 切替(2状態: Enabled / Disabled)または GameObject SetActive 切替
+- [ ] **5-3 Cart 着座 Idle ガード** — [CartController.cs](../Assets/_Project/Scripts/CartController.cs) の `Interact()` / `OnStationEntered` に `gameManager.gameState != STATE_IDLE` no-op ガードを追加(走行中・ResultDisplay 中の再着座を防止)
+- [ ] **5-4 `simultaneousFinale` を UdonSynced 化** — [GameManager.cs:44](../Assets/_Project/Scripts/GameManager.cs#L44) に `[UdonSynced]` 付与、書込時 `RequestSerialization()` を発呼。Persistence 書込結果を他クライアントへ伝播する経路を確保
+- [ ] **5-5 FinaleModeToggle UI**(新規) — Master 限定 + `gameState == STATE_IDLE` のみ反応、押下で `gameManager.simultaneousFinale` 反転、ON/OFF 視覚切替
+- [ ] **5-6 FinaleModeManager (Player Persistence)**(新規) — [ADR-0012 §7](./adr/0012-goal-effect-randomized.md#7-b-モード切替-ui-と-player-persistence-による永続化) 実装パターンに従う:
+  - [ ] トグル操作時に `PlayerData.SetBool("amidakuji.simultaneousFinale", value)` を呼ぶ
+  - [ ] `OnPlayerRestored(VRCPlayerApi player)` で `player.isLocal && Networking.IsMaster` のとき復元 + `RequestSerialization` で他クライアントに伝播
+  - [ ] `OnPlayerLeft` で `Networking.IsMaster` 再判定 → Master 昇格時の再復元(ADR-0012 §7「Master 昇格時の追加フック」)
+- [ ] **5-7 ResultDisplay 掲示**(新規) — 「席 n → ゴール m」を 4 行表示、`gameState == STATE_RESULT_DISPLAY` の間だけ Active。エントリーエリアの掲示 UI として配置
+- [ ] **5-8 FinaleCountdown を CountdownUI に統合** — A モード時の `_finaleArmed=true → CountdownUI.StartCountdown(finaleCountdownSeconds, "_FireFinale")` 経由に [GameManager._NotifyCartGoaled()](../Assets/_Project/Scripts/GameManager.cs#L217) を改修(現行は `SendCustomEventDelayedSeconds` 直叩き、UI 表示が無いため)
+
+**完了基準**: 一連の流れがUI操作だけで回せる(着座 → Master が StartButton 押下 → カウントダウン UI → 走行 → A/B 各モードのゴール演出 → ResultDisplay 掲示 → 自動 Idle 復帰)。演出モード切替トグルが動作し、Persistence 経由で同一人物の再 Master 時に B モード設定が復元される
 
 ## Phase 6: Late Joiner / エッジケース (PC) [5/27] [1日]
 

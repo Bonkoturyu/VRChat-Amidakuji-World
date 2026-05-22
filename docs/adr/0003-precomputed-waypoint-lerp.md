@@ -32,7 +32,7 @@
 
 レース経過時間の取得は以下のパターン:
 
-```
+```csharp
 double nowServer  = Networking.GetServerTimeInSeconds();
 double elapsed    = Networking.CalculateServerDeltaTime(nowServer, raceStartTime);
 // elapsed を使って Waypoint 間の Lerp 計算
@@ -62,7 +62,7 @@ double elapsed    = Networking.CalculateServerDeltaTime(nowServer, raceStartTime
 
 ### Waypoint構築アルゴリズム概要
 
-```
+```text
 ComputePath(seed, startLane):
   currentLane = startLane
   waypoints = []

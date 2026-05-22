@@ -23,7 +23,7 @@
 
 ## ディレクトリ構造
 
-```
+```text
 amidakuji-world/
 ├── CLAUDE.md            ← このファイル(プロジェクト規約・ナビゲーション)
 ├── BACKLOG.md           ← 課題・進捗・v1.1+ アイデア
@@ -72,7 +72,7 @@ amidakuji-world/
 ### 共通 (PC + Android)
 
 | 指標 | PC (Good) | Android (Quest Good) |
-|---|---|---|
+| --- | --- | --- |
 | Triangle Count | 70,000 | 250,000 (世界全体)、推奨は同程度に抑える |
 | Material Count | 20 | 20 |
 | Draw Call | 200 | 50-100 が望ましい |

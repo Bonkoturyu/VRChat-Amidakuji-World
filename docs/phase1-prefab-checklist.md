@@ -27,7 +27,7 @@ Matrix を**目視確認**してから本チェックリストに進むこと。
 全プレイヤーが歩く 1 枚の大型床。
 
 | 項目 | 値 |
-|---|---|
+| --- | --- |
 | Mesh | Primitive Cube |
 | Scale | **(16, 0.2, 80)** |
 | Position | (0, -0.1, -28) → 上面 Y=0、X 範囲 -8〜+8、Z 範囲 -68〜+12 |
@@ -44,13 +44,13 @@ Matrix を**目視確認**してから本チェックリストに進むこと。
 
 ### 2.1 Prefab 仕様
 
-```
+```text
 VLine_X (Root, Layer: Default)
 └── (Primitive Cube が Root 自身を兼ねる)
 ```
 
 | 項目 | 値 |
-|---|---|
+| --- | --- |
 | Mesh | Primitive Cube |
 | Scale | (0.2, 0.02, 60.0) |
 | Material | `M_Line`(白 `#FFFFFF`) |
@@ -62,7 +62,7 @@ VLine_X (Root, Layer: Default)
 シーン Hierarchy: `_World > AmidakujiLines > VerticalLines/`
 
 | Instance | Position (X, Y, Z) |
-|---|---|
+| --- | --- |
 | `VLine_0` | (-6, 0.01, -28) |
 | `VLine_1` | (-2, 0.01, -28) |
 | `VLine_2` | ( 2, 0.01, -28) |
@@ -76,13 +76,13 @@ Y=0.01 は線の中心高さ(床上面 Y=0 から 1 cm 浮かせ、線の上面�
 
 ### 3.1 Prefab 仕様
 
-```
+```text
 Bar_LX_SXX (Root, Layer: Default)
 └── (Primitive Cube が Root 自身を兼ねる)
 ```
 
 | 項目 | 値 |
-|---|---|
+| --- | --- |
 | Mesh | Primitive Cube |
 | Scale | (4.0, 0.02, 0.2) |
 | Material | `M_Line`(白) |
@@ -114,7 +114,7 @@ Bar_LX_SXX (Root, Layer: Default)
 
 Prefab ローカル原点を **「隙間の床面中心」** に取る(配置 Y=0 でワールド Y=0 = 床上面と一致)。
 
-```
+```text
 Barrier_X (Root, Layer: GoalBarrier)
 ├── WallLeft (Primitive Cube)
 ├── WallRight (Primitive Cube)
@@ -122,7 +122,7 @@ Barrier_X (Root, Layer: GoalBarrier)
 ```
 
 | パート | Scale (X, Y, Z) | Position(ローカル) |
-|---|---|---|
+| --- | --- | --- |
 | `WallLeft` | **(1.25, 2.0, 0.2)** | **(-1.375, +1.0, 0)** |
 | `WallRight` | **(1.25, 2.0, 0.2)** | **(+1.375, +1.0, 0)** |
 | `Ceiling` | (1.5, 1.5, 0.2) | (0, +1.25, 0) |
@@ -136,7 +136,7 @@ Barrier_X (Root, Layer: GoalBarrier)
 ### 4.2 コンポーネント
 
 | GameObject | Layer | 追加コンポーネント |
-|---|---|---|
+| --- | --- | --- |
 | `Barrier_X` (Root) | `GoalBarrier` (User23) | (Inspector) `public int laneIndex` 0..3 — Phase 1 はダミー値で OK、Phase 4 で本実装 |
 | 子3パーツ | `GoalBarrier`(親から継承、Apply Children で Yes) | なし |
 
@@ -145,7 +145,7 @@ Barrier_X (Root, Layer: GoalBarrier)
 シーン Hierarchy: `_World > GoalBarriers/`
 
 | Instance | Position (X, Y, Z) | laneIndex |
-|---|---|---|
+| --- | --- | --- |
 | `Barrier_0` | (-6, 0, -58.5) | 0 |
 | `Barrier_1` | (-2, 0, -58.5) | 1 |
 | `Barrier_2` | ( 2, 0, -58.5) | 2 |
@@ -161,7 +161,7 @@ Phase 1 ではメッシュ未確定のため Primitive Cube で Prefab 化。実
 
 ### 5.1 Prefab 内部構造
 
-```
+```text
 Cart_X (Root, Layer: Cart)
 ├── Visual/
 │   └── Body (Primitive Cube)                              ← Material: M_LaneColor_N
@@ -170,7 +170,7 @@ Cart_X (Root, Layer: Cart)
 ```
 
 | 項目 | 値 |
-|---|---|
+| --- | --- |
 | Body Mesh | Primitive Cube |
 | Body Scale | (0.9, 0.9, 1.4)(幅 × 高さ × 奥行) |
 | Body Position(ローカル) | (0, 0.45, 0)(床上面 Y=0 → Body 下面 Y=0、上面 Y=0.9) |
@@ -183,7 +183,7 @@ Cart_X (Root, Layer: Cart)
 Phase 2 暫定と Phase 3 以降で Inspector フィールドが切り替わる(設計詳細は [scene-structure.md §6](./scene-structure.md))。スタート位置・ゴール位置は Cart_N / GoalBarrier_N の Transform を直接参照する設計のため、`startMarker / goalMarker / prizeTeleport` フィールドは作らない(commit `00511e8` で StartMarkers/GoalMarkers Empty 配置自体を廃止済み)。
 
 | Inspector フィールド | 型 | Phase | Phase 1 時点 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `laneIndex` | int | Common | 0..3(Cart_N の N) |
 | `speed` | float | Common | 2.0 |
 | `station` | VRC_Station | Common | 自身の子 Seat の Station |
@@ -198,7 +198,7 @@ Phase 2 暫定と Phase 3 以降で Inspector フィールドが切り替わる(
 シーン Hierarchy: `_World > Carts/`
 
 | Instance | Position (X, Y, Z) | Body Material |
-|---|---|---|
+| --- | --- | --- |
 | `Cart_0` | (-6, 0, +2) | `M_LaneColor_0`(赤) |
 | `Cart_1` | (-2, 0, +2) | `M_LaneColor_1`(黄) |
 | `Cart_2` | ( 2, 0, +2) | `M_LaneColor_2`(緑) |
@@ -215,7 +215,7 @@ Z=+2 は縦線の上端(Z=+2 が縦線スタート位置)。
 
 ### 6.1 Prefab 内部構造
 
-```
+```text
 Seat_X (Root, Layer: Default)
 ├── Visual (Primitive Cube)                                ← Material: M_Wall_Generic(灰)
 └── InteractTrigger (Empty GameObject)
@@ -232,7 +232,7 @@ Seat_X (Root, Layer: Default)
 シーン Hierarchy: `_World > EntryArea > Seats/`
 
 | Instance | Position (X, Y, Z) | seatIndex |
-|---|---|---|
+| --- | --- | --- |
 | `Seat_0` | (-6, 0, +5) | 0 |
 | `Seat_1` | (-2, 0, +5) | 1 |
 | `Seat_2` | ( 2, 0, +5) | 2 |
@@ -252,7 +252,7 @@ Prefab ローカル原点 = 部屋中心の床上面(Y=0)。部屋サイズ **X=
 
 **Prefab Root の Rotation Y = 180** に設定する。これにより、Wall_S_Left/Right の隙間が +Z 方向(GoalBarrier 側)を向く。
 
-```
+```text
 Prize_X (Root, Layer: Default, Rotation Y=180)
 ├── Walls/
 │   ├── Wall_N (Primitive Cube, Scale 3.5 × 4 × 0.2, Position (0, 2, +4))   ← Root から見て +Z 側
@@ -275,7 +275,7 @@ Prize_X (Root, Layer: Default, Rotation Y=180)
 シーン Hierarchy: `_World > PrizeAreas/`
 
 | Instance | Position (X, Y, Z) | prizeIndex |
-|---|---|---|
+| --- | --- | --- |
 | `Prize_0` | (-6, 0, -64) | 0 |
 | `Prize_1` | (-2, 0, -64) | 1 |
 | `Prize_2` | ( 2, 0, -64) | 2 |
@@ -291,7 +291,7 @@ Prize_X (Root, Layer: Default, Rotation Y=180)
 
 ### 8.1 EntryArea(物理床なし、論理エリア)
 
-```
+```text
 EntryArea (Empty GameObject, Position (0, 0, +5))
 ├── Seats (上記 Seat_0〜3 の親)
 ├── StartButton (後述)
@@ -301,7 +301,7 @@ EntryArea (Empty GameObject, Position (0, 0, +5))
 
 ### 8.2 DefaultSpawn
 
-```
+```text
 DefaultSpawn (Empty GameObject, Position (0, 0.1, +10))
 ```
 
@@ -309,7 +309,7 @@ VRC Scene Descriptor の `Spawns[0]` にこの Transform を指定。プレイ�
 
 ### 8.3 RulesPanel(Phase 1 はダミー)
 
-```
+```text
 RulesPanel (Empty GameObject, Position (0, 2, +12))
 └── Visual (Primitive Cube, Scale 4 × 2 × 0.1, Material: M_Wall_Generic)
 ```
@@ -318,7 +318,7 @@ Phase 5 で TextMeshPro パネルに置換予定。Phase 1 は灰色立て看板
 
 ### 8.4 StartButton(Phase 1 はダミー)
 
-```
+```text
 StartButton (Empty GameObject, World Position (0, 1.2, +7) = EntryArea ローカル (0, 1.2, +2))
 ├── Visual (Primitive Cube, Scale 0.5 × 0.5 × 0.2, Material: M_Button_Inactive [初期])
 └── InteractTrigger (Empty + Box Collider IsTrigger=true, Size (0.5, 0.5, 0.3), Center (0,0,0))
@@ -331,7 +331,7 @@ StartButton (Empty GameObject, World Position (0, 1.2, +7) = EntryArea ローカ
 
 ## 9. _Managers と VRCWorld(シーン直配置)
 
-```
+```text
 _Managers (Empty GameObject, Position (0, 0, 0))
 ├── GameManager (Empty + GameManager UdonBehaviour 空アタッチ)
 └── AmidakujiGenerator (Empty + AmidakujiGenerator UdonBehaviour 空アタッチ)

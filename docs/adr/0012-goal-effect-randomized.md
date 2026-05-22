@@ -59,7 +59,7 @@ int[] ComputeEffectAssignment(int seed, int N, int E, int C) {
 `GameManager` に以下を追加:
 
 | フィールド | 型 | 既定値 | 役割 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `explosionCount` | int | 1 | 爆発演出を割り当てるレーン数 |
 | `confettiCount` | int | 1 | 紙吹雪演出を割り当てるレーン数 |
 | `simultaneousFinale` | bool | true | 演出タイミングモード(後述) |
@@ -75,7 +75,7 @@ v1.0 では `explosionCount=1, confettiCount=1` を固定値として運用。v1
 
 #### A モード(既定、`simultaneousFinale=true`)
 
-```
+```text
 全カートがゴール → (テレポート完了)
                 → [FinaleCountdown] (3 秒、UI で "3-2-1" 表示)
                 → 一斉発火: 全演出 Particle.Play + 共通 SE 1 発
@@ -88,7 +88,7 @@ v1.0 では `explosionCount=1, confettiCount=1` を固定値として運用。v1
 
 #### B モード(`simultaneousFinale=false`)
 
-```
+```text
 各カート個別にゴール到達 → 即 PlayEffect(個別 SE 鳴らす)
 全カートゴール → [ResultDisplay]
 ```
@@ -119,15 +119,32 @@ SPEC §12 の「カスタム賞品(賞品エリアは固定)」は維持する�
 
 A モード時のみ、`Running` と `ResultDisplay` の間に `FinaleCountdown` を挟む。ただし独立ステートにはせず、`Running` 末尾の遷移待ちフェーズとして UI フラグで扱う(同期変数の追加を回避)。
 
-```
+```text
 既存:  [Idle] → [Countdown] → [Running] → [ResultDisplay] → [Idle]
 新規:  [Idle] → [Countdown] → [Running] → (FinaleCountdown_UIフェーズ) → [ResultDisplay] → [Idle]
                                             ↑ A モード時のみ、gameState は Running のまま
 ```
 
+#### 冒頭 Countdown も同方針 — 独立ステートを作らない(2026-05-22 確定、Phase 5 着手前)
+
+`STATE_COUNTDOWN=1` は [GameManager.cs](../../Assets/_Project/Scripts/GameManager.cs#L11) で番号予約済だが、Phase 5 で独立ステートとして実装しない。`RequestStart()` は現行どおり `STATE_IDLE → STATE_RUNNING` 直行し、`raceStartTime = serverTime + COUNTDOWN_BUFFER (3.0s)` の時刻バッファで Countdown UI 表示時間と Sync 遅延吸収を統合する。
+
+UI 側は `gameState == STATE_RUNNING && raceStartTime - serverTime > 0` の間を「冒頭 Countdown フェーズ」、`elapsed >= 0` で走行開始、A モード時は全カート到達後を「FinaleCountdown フェーズ」として、同一の `CountdownUI` コンポーネントで処理する。
+
+最終形:
+
+```text
+[Idle] →(StartButton)→ [Running] →(POST_FINALE_DELAY)→ [ResultDisplay] →(RESULT_DISPLAY_DURATION)→ [Idle]
+                          ├─ raceStartTime > serverTime: 冒頭 Countdown UI フェーズ(3-2-1)
+                          ├─ elapsed >= 0 & 走行中: Running フェーズ
+                          └─ A モードのみ: 全カート到達後 FinaleCountdown UI フェーズ(3-2-1)
+```
+
+理由: 同期変数の追加を回避([ADR-0005](./0005-minimal-sync-variables.md))。FinaleCountdown 同様の方針で対称性を維持し、StartButton の「Idle 中のみ反応」判定を `gameState == STATE_IDLE` 1 状態で完結させるため。
+
 ### 6. PrizeArea Prefab 構造
 
-```
+```text
 PrizeArea_n (GameObject, UdonSharp 不要)
 ├─ TeleportTarget (Transform、テレポート先位置)
 ├─ ExplosionEffect (GameObject, 既定 inactive)
@@ -227,7 +244,7 @@ public class FinaleModeManager : UdonSharpBehaviour {
 ##### 永続化の動作仕様
 
 | シナリオ | 挙動 |
-|---|---|
+| --- | --- |
 | 同じ人が再度 Master として入場 | 自分の OnPlayerRestored で復元 → 前回値が反映される |
 | 違う人が Master として入場(Persistence 履歴なし) | TryGetBool == false → Inspector 既定値(A モード)継続 |
 | 違う人が Master として入場(別ワールドで履歴あり別ワールド由来) | キー名がワールド固有のため復元されない |
@@ -278,7 +295,7 @@ public class FinaleModeManager : UdonSharpBehaviour {
 ### スケジュール影響
 
 | 期間 | 作業 |
-|---|---|
+| --- | --- |
 | 5/19-20 | パーティクル Prefab(爆発・紙吹雪)+ 共通 SE 制作 |
 | Phase 4 (5/24-25) | `ComputeEffectAssignment` + `PrizeArea.PlayEffect` 配線 + A/B モード分岐 |
 | Phase 5 (5/26) | `FinaleCountdown` UI を Countdown UI と統合(既存 3-2-1 表示の再利用) |
@@ -299,3 +316,4 @@ public class FinaleModeManager : UdonSharpBehaviour {
 - 2026-05-18: §3 に「A モード既定 + B モード切替 UI」確定を追記。§7 を新設し B モード切替 UI と Player Persistence による永続化仕様を定義。§8 に演出発火位置(プレイヤーは演出の中に立つ)を確定として追記
 - 2026-05-18: §7 の Player Persistence セクションを VRChat 公式ドキュメント確認結果で実 API に揃えた。`PlayerData.SetBool / GetBool / TryGetBool` のシグネチャ、`OnPlayerRestored` の発火タイミング(新規入室時のみ)、Master 昇格時の追加フック(`OnPlayerLeft` で再判定)を明示。SDK 3.7.4 以降が前提
 - 2026-05-21: §4 に「演出割当と TeleportTo は Cart 起点 lane ではなく終点 lane (goalLane) ベースで行う」を明記。Phase 4 Stage A で起点 lane ベース実装→終点 lane ベースに修正済み
+- 2026-05-22: §5 に「冒頭 Countdown も独立ステートにしない(案 2 確定)」を追記。Phase 5 着手前の最終確認で対称性を取り、`STATE_COUNTDOWN=1` は番号予約のまま温存して `raceStartTime - serverTime > 0` 期間を Countdown UI フェーズとして扱う方針を明示([ADR-0005](./0005-minimal-sync-variables.md) と整合、UdonSynced 追加ゼロ)

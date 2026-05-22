@@ -21,7 +21,7 @@
 ### Station 設定値
 
 | プロパティ | 値 | 理由 |
-|---|---|---|
+| --- | --- | --- |
 | `Player Mobility` | **Immobilize (For Vehicle)** | カートTransform駆動中、プレイヤー入力で動かない(WASD/スティックでカート位置と競合させない) |
 | `Seated` | **true** | 着座IK適用、`pinned-down bug` 回避 |
 | `Can Use Station From Station` | false | 他席への席替え不可 |
@@ -70,7 +70,7 @@ public override void Interact()
 ### 退出入力経路の一覧(Phase 2 実装)
 
 | プラットフォーム | 入力 | 実現方法 |
-|---|---|---|
+| --- | --- | --- |
 | VR | コントローラ Trigger (Use) | VRChat 標準仕様(常時有効、`disableStationExit` の値に無関係) |
 | Desktop | 移動入力 (WASD / 左スティック) | VRC_Station の `disableStationExit=false` 設定 |
 | Desktop | **Space キー** (ジャンプ) | UdonSharp で `InputJump(bool value, UdonInputEventArgs args)` をフックし、着座中であれば `station.ExitStation(localPlayer)` を呼ぶ |

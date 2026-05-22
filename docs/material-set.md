@@ -10,7 +10,7 @@ Phase 1 着手時点の v1.0 マテリアル定義。PC + Android クロスプ�
 ## 1. マテリアル一覧 (計 12)
 
 | # | 名前 | シェーダー | テクスチャ | テクスチャサイズ | GPU Inst. | 用途(主な配置先) |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | 1 | `M_Floor_Common` | `VRChat/Mobile/Standard Lite` | `T_Floor_Common_Albedo` | 512 | ✓ | MainFloor(単一の大型床) |
 | 2 | `M_Line` | `VRChat/Mobile/Standard Lite` | 単色(白 `#FFFFFF`) | — | ✓ | 縦線(VLine_0〜3)・横線(Bar_LX_SXX)で共用、床に貼り付く高さ 2 cm の細い Cube |
 | 3 | `M_Wall_Generic` | `VRChat/Mobile/Standard Lite` | `T_Wall_Generic_Albedo` | 512 | ✓ | PrizeArea 壁・天井 / Seat マーカー / RulesPanel 背面 |
@@ -95,7 +95,7 @@ Signed Distance Field (SDF) は、各画素に「最も近い文字輪郭まで�
 `VRChat/Mobile/Particles/Additive` および `Multiply` の Inspector 公開プロパティは **最小構成**:
 
 | プロパティ | 説明 | 備考 |
-|---|---|---|
+| --- | --- | --- |
 | Particle Texture | テクスチャスロット(`_MainTex`) | Default-Particle 等をアサイン |
 | Tiling / Offset | テクスチャ UV 調整 | 通常変更しない |
 | Render Queue | 描画順 | 既定 `From Shader (3000)` のまま |
@@ -117,7 +117,7 @@ QvPen 既定の原色 8 色 (`#FF0000 / #00FF00 / #0000FF / #FFFF00 / #FF00FF / 
 を母集合とし、視認性を踏まえて以下を採用。
 
 | Lane | X 座標 | 色 | HEX | `M_LaneColor_N._Color` (RGBA 0-1) | 採用理由 |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 0 | -6 | 赤 | `#FF0000` | (1.0, 0.0, 0.0, 1.0) | 端の左、警戒色で「1番」と認識しやすい |
 | 1 | -2 | 黄 | `#FFFF00` | (1.0, 1.0, 0.0, 1.0) | 明度高、Lane 0 と隣接でも識別容易 |
 | 2 | +2 | 緑 | `#00FF00` | (0.0, 1.0, 0.0, 1.0) | 中央右、寒色寄りに切り替え |
@@ -134,7 +134,7 @@ QvPen 既定の原色 8 色 (`#FF0000 / #00FF00 / #0000FF / #FFFF00 / #FF00FF / 
 **Cart のみ** に LaneColor を適用([ADR-0011](./adr/0011-flat-horizontal-layout.md))。Seat / PrizeArea / Start マーカーはグレー統一(`M_Wall_Generic`)。
 
 | 箇所 | 紐づくマテリアル |
-|---|---|
+| --- | --- |
 | `Cart_N` の Body Renderer | `M_LaneColor_N` |
 | `Seat_N` の Visual マーカー | `M_Wall_Generic`(グレー、レーン色なし) |
 | `PrizeArea_N` のアクセント | (装飾なし、`M_Wall_Generic` のみ) |
@@ -147,7 +147,7 @@ QvPen 既定の原色 8 色 (`#FF0000 / #00FF00 / #0000FF / #FFFF00 / #FF00FF / 
 ## 4. テクスチャ仕様
 
 | 名前 | サイズ | 形式 | 用途 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `T_Floor_Common_Albedo` | 512×512 | ETC2 (Android) / DXT1 (PC) | MainFloor の床テクスチャ(タイリング 4 m) |
 | `T_Wall_Generic_Albedo` | 512×512 | 同上 | 壁面・Seat マーカー共用 |
 | `T_Floor_Prize_Albedo` | 512×512 | 同上 | (v1.0 未使用、将来用) |
@@ -204,7 +204,7 @@ Phase 1 着手時点では、テクスチャ画像は用意せず **Main Color �
 ### Phase 1 プレースホルダ色一覧
 
 | マテリアル | Albedo Color (HEX) | 備考 |
-|---|---|---|
+| --- | --- | --- |
 | `M_Floor_Common` | `#888888` | 中間グレー(MainFloor) |
 | `M_Line` | `#FFFFFF` | 白(縦線・横線、灰色床に対し最大コントラスト) — 旧 `M_Post_Track` をリネーム + 色変更 |
 | `M_Wall_Generic` | `#AAAAAA` | 明るめグレー(PrizeArea 壁・Seat マーカー) |
