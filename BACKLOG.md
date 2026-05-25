@@ -16,7 +16,7 @@
 - [x] Phase 2: カート単体走行 + 歩行者非衝突レイヤー設定(走行中の干渉確認のみ Phase 3 に持ち越し、停止カートで Layer 設計は検証済み)
 - [ ] Phase 3: ランダム生成 + seed同期 (2クライアントで一致確認)
 - [x] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール演出(2026-05-21 完了、約3日前倒し。`_ApplyState()` 冪等化で OnDeserialization 高頻度発火問題を解消、演出割当は終点 lane ベースに修正 [ADR-0012 §4](./docs/adr/0012-goal-effect-randomized.md))
-- [ ] Phase 5: ゲームフロー UI 完成
+- [x] Phase 5: ゲームフロー UI 完成(2026-05-23、Persistence 復元 V9-V11 は Phase 6 で Private アップロード環境にて検証予定)
 - [ ] Phase 6: Late Joiner / エッジケース対応 (PC)
 - [ ] Phase 7: Android Platform 切替 + 初期最適化
 - [ ] Phase 8: Quest 実機テスト + 調整

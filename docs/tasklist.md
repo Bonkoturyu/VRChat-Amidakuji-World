@@ -208,7 +208,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - `_ApplyState()` 冪等化後、Running 中の Debug.Log 出力は 1 ラウンド 1 回のみ(修正前は毎秒 3〜6 回)
 - CONFETTI 個別発火回数: 修正前=10 回 / 修正後=**1 回** ([commit pending])
 
-## Phase 5: ゲームフロー UI [5/26] [1日]
+## Phase 5: ゲームフロー UI [5/26] [1日] ✅ 完了 (2026-05-23、Persistence 復元 V9-V11 は Phase 6 持越し)
 
 **着手前設計確定(2026-05-22)**:
 
@@ -218,25 +218,41 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 実装サブタスク(`5-1 / 5-2 / 5-3 / 5-4` は並列着手可、`5-5 → 5-6` は順序依存、`5-8` は 5-1 完了後、`5-7` は独立):
 
-- [ ] **5-1 CountdownUI 実装**(新規) — 3-2-1 表示、`raceStartTime` ベースで毎フレーム更新。冒頭 Countdown フェーズと A モード末尾 FinaleCountdown フェーズの両方で再利用可能な単一 Component。`StartCountdown(seconds, callbackEventName)` API を持つ
-- [ ] **5-2 StartButton 強化** — 既存 [StartButton.cs](../Assets/_Project/Scripts/StartButton.cs) を改修:
-  - [ ] 参加者人数チェック(`participantPlayerIds[] != -1` の数 ≥ 1)
-  - [ ] `gameState != STATE_IDLE` で interact 無効化
-  - [ ] 視覚 Material 切替(2状態: Enabled / Disabled)または GameObject SetActive 切替
-- [ ] **5-3 Cart 着座 Idle ガード** — [CartController.cs](../Assets/_Project/Scripts/CartController.cs) の `Interact()` / `OnStationEntered` に `gameManager.gameState != STATE_IDLE` no-op ガードを追加(走行中・ResultDisplay 中の再着座を防止)
-- [ ] **5-4 `simultaneousFinale` を UdonSynced 化** — [GameManager.cs:44](../Assets/_Project/Scripts/GameManager.cs#L44) に `[UdonSynced]` 付与、書込時 `RequestSerialization()` を発呼。Persistence 書込結果を他クライアントへ伝播する経路を確保
-- [ ] **5-5 FinaleModeToggle UI**(新規) — Master 限定 + `gameState == STATE_IDLE` のみ反応、押下で `gameManager.simultaneousFinale` 反転、ON/OFF 視覚切替
-- [ ] **5-6 FinaleModeManager (Player Persistence)**(新規) — [ADR-0012 §7](./adr/0012-goal-effect-randomized.md#7-b-モード切替-ui-と-player-persistence-による永続化) 実装パターンに従う:
-  - [ ] トグル操作時に `PlayerData.SetBool("amidakuji.simultaneousFinale", value)` を呼ぶ
-  - [ ] `OnPlayerRestored(VRCPlayerApi player)` で `player.isLocal && Networking.IsMaster` のとき復元 + `RequestSerialization` で他クライアントに伝播
-  - [ ] `OnPlayerLeft` で `Networking.IsMaster` 再判定 → Master 昇格時の再復元(ADR-0012 §7「Master 昇格時の追加フック」)
-- [ ] **5-7 ResultDisplay 掲示**(新規) — 「席 n → ゴール m」を 4 行表示、`gameState == STATE_RESULT_DISPLAY` の間だけ Active。エントリーエリアの掲示 UI として配置
-- [ ] **5-8 FinaleCountdown を CountdownUI に統合** — A モード時の `_finaleArmed=true → CountdownUI.StartCountdown(finaleCountdownSeconds, "_FireFinale")` 経由に [GameManager._NotifyCartGoaled()](../Assets/_Project/Scripts/GameManager.cs#L217) を改修(現行は `SendCustomEventDelayedSeconds` 直叩き、UI 表示が無いため)
+- [x] **5-1 CountdownUI 実装**(新規) — 3-2-1 表示、サーバー時刻ベース、冒頭 Countdown と A モード末尾 FinaleCountdown の両用、`isFinaleOnly` で賞品エリア内 Canvas を冒頭起動からスキップ
+- [x] **5-2 StartButton 強化** — 参加者≥1 / `STATE_IDLE` ガード、`sharedMaterial` 切替で Enabled / Disabled 視覚化
+- [x] **5-3 Cart 着座 Idle ガード** — `Interact()` と `OnStationEntered` の両方に `gameState != STATE_IDLE` no-op ガード(片方だけだと走行中再着座が抜ける)
+- [x] **5-4 `simultaneousFinale` を UdonSynced 化** — Persistence 書込結果を他クライアントへ伝播
+- [x] **5-5 FinaleModeToggle UI**(新規) — Master+Idle ガード、A/B/Disabled の 3 状態 Material 切替
+- [x] **5-6 FinaleModeManager (Player Persistence)**(新規) — `OnPlayerRestored`(自分の Restored + 自動 Master 時)+ `OnPlayerLeft`(Master 昇格時)の両フック、同値書込は no-op で冪等
+- [x] **5-7 ResultDisplay 掲示**(新規) — 「席 N → ゴール M (名前 or 空席 or 退出)」4 行、`STATE_RESULT_DISPLAY` の間のみ Active
+- [x] **5-8 FinaleCountdown を CountdownUI に統合** — `countdownUIs[]` 全要素に `_StartCountdown` を呼びつつ最初の有効要素にだけ `_FireFinale` コールバックを渡す(複数発火防止)+ 全要素 null 時の `SendCustomEventDelayedSeconds` フォールバック
 
-**完了基準**: 一連の流れがUI操作だけで回せる(着座 → Master が StartButton 押下 → カウントダウン UI → 走行 → A/B 各モードのゴール演出 → ResultDisplay 掲示 → 自動 Idle 復帰)。演出モード切替トグルが動作し、Persistence 経由で同一人物の再 Master 時に B モード設定が復元される
+**完了基準**: 一連の流れがUI操作だけで回せる(着座 → Master が StartButton 押下 → カウントダウン UI → 走行 → A/B 各モードのゴール演出 → ResultDisplay 掲示 → 自動 Idle 復帰)。演出モード切替トグルが動作し、Persistence 経由で同一人物の再 Master 時に B モード設定が復元される — ✅ UI 一連フロー達成、Persistence 復元は ClientSim/Build&Test では検証困難のため Phase 6 Private アップロード環境に移管
+
+**Stage A (ClientSim 単独) + Stage B (2 クライアント Build & Test) 検証結果** (seed=12345 / 2026-05-23):
+
+| 項目 | 結果 | 補足 |
+| --- | --- | --- |
+| V1 冒頭 3-2-1 Countdown | ✅ | StartButton 押下後、3→2→1→GO! 表示が両クライアントで見える |
+| V2 StartButton 視覚切替 | ✅ | 参加者 0 / 走行中 = Disabled、参加者≥1 + Idle = Enabled |
+| V3 Cart 着座 Idle ガード | ✅ | 走行中・ResultDisplay 中の Interact は即弾かれる |
+| V4 A モードフィナーレ | ✅ | 全員ゴール → 3 秒 Countdown UI → 一斉発火 + 共通 SE |
+| V5 B モード個別発火 | ✅ | Cart ゴール瞬間に該当 Prize で即発火、その後 1.5s で ResultDisplay |
+| V6 ResultDisplay 掲示 | ✅ | 「席 N → ゴール M (名前)」4 行が 10 秒表示 → Idle 復帰 |
+| V7 FinaleModeToggle 視覚切替 | ✅ | Master+Idle で押下可、A/B/Disabled の 3 状態 Material |
+| V8 2 クライアント表示同期 | ✅ | Countdown / Finale UI が両クライアントで同タイミング表示 |
+| V9 Persistence 復元(再入場) | Phase 6 持越し | ClientSim/Build&Test では同一アカウント再入場の再現が困難、Private アップロード + テスター必要 |
+| V10 Persistence 復元(Master 昇格) | Phase 6 持越し | 同上 — 別アカウント Master 入場 + Master 退出シナリオが要 |
+| V11 Persistence 既定値継続 | Phase 6 持越し | 同上 — Persistence 未保存の別アカウントが Master 入場で A モード継続を確認 |
+
+**Phase 6 持越し事項**:
+
+- Cart `_DelayedTeleportToPrize` 内で `seatedPlayerId=-1` 書込追加(ゴール退出時のリセット漏れ、Late Joiner シナリオでの誤登録予防)
+- Persistence V9〜V11 を Private アップロード + テスター環境で実施
 
 ## Phase 6: Late Joiner / エッジケース (PC) [5/27] [1日]
 
+- [ ] **Phase 5 持越し: Cart `_DelayedTeleportToPrize` 内で `seatedPlayerId=-1` 書込追加** — ゴール退出経路でリセットされない状態が残り、ResultDisplay 終了直後の Late Joiner + Owner 移譲タイミングで古い PID が `_RegisterParticipant` 経由で `participantPlayerIds[]` に誤登録される可能性。修正は 1 行追加で安価
 - [ ] Late Joiner テスト: Idle中・Running中・ResultDisplay中それぞれで途中参加
 - [ ] Master交代テスト: 走行中にMasterが退出
 - [ ] **Player Persistence 動作テスト**(Phase 5 で実装した B モード永続化、[ADR-0012](./adr/0012-goal-effect-randomized.md))
