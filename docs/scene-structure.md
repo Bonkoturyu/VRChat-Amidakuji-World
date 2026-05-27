@@ -45,8 +45,8 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 │   │   ├── Seats/
 │   │   │   ├── Seat_0 ... Seat_3  (Prefab Instances, seatIndex=N)
 │   │   ├── StartButton            ← 一意、Prefab化しない
-│   │   ├── RulesPanel             ← 追いかけ式観戦の説明含む
-│   │   └── ResultDisplay          ← レース結果掲示UI
+│   │   ├── RulesPanel             ← Tab 切替式 + JP/EN 切替(Rev.4)、Z=+7 左側
+│   │   └── ResultDisplay          ← レース結果掲示UI、Z=+7 右側、サイズ統一(Rev.4)
 │   └── PrizeAreas/                ← GoalBarrier の向こう(Z=-60〜-68)
 │       ├── Prize_0  (Prefab Instance, prizeIndex=0)
 │       ├── Prize_1
@@ -55,7 +55,8 @@ v1.0 では PC + Android 両プラットフォーム対応のため、モバイ�
 │
 ├── _Managers/                    ← Udon Behaviour 群(可視不要、Position 0)
 │   ├── GameManager               ← UdonBehaviour: GameManager.cs
-│   └── AmidakujiGenerator        ← UdonBehaviour: AmidakujiGenerator.cs
+│   ├── AmidakujiGenerator        ← UdonBehaviour: AmidakujiGenerator.cs
+│   └── LocalizationManager       ← UdonBehaviour: LocalizationManager.cs(Rev.4、JP/EN Local 切替)
 │
 ├── _Lighting/
 │   ├── DirectionalLight
@@ -392,7 +393,8 @@ Transform を直接参照する設計のため、`startMarker / goalMarker / pri
 平面水平レイアウトのため、スポーンデッキ + 接続橋は不要(段差ゼロのため、別レベルの床を作る必要がない、[ADR-0011](./adr/0011-flat-horizontal-layout.md))。
 
 - DefaultSpawn: **(0, 0.1, +10)**、Rotation **Y=180°**(2026-05-17 修正)— MainFloor の EntryArea(Z=+5)より +Z 側に配置し、180° 回転で -Z 方向(EntryArea / Seat / Goal 側)を向く。プレイヤーの視線正面に Seat 群と縦線群が入る
-- RulesPanel: (0, 2, +12) に高さ 2 m × 幅 4 m パネル(DefaultSpawn の背後)。Phase 5 で TextMeshPro 化、Phase 1 は灰色立て看板
+- RulesPanel: **(-3, 2.5, +7)**、サイズ 4 m × 2 m パネル(Rev.4、2026-05-25 改訂)。Tab 切替式(参加 / 観戦 / 演出モード)+ JP/EN 切替対応、TextMeshPro + VRChat 内蔵 Noto Sans JP Fallback ([Narazaka VPM](https://github.com/Narazaka/tmp-fallback-fonts-jp))。Visual の Collider は OFF(視線下方からカートを視認できるよう Y 中心 2.5 配置で目線下に空きを確保)。当初案 (0, 2, +12) は MainFloor の Z 上限 +12 と一致し床境界配置で UX 不良のため左右分離 + 中央寄りに移動
+- ResultDisplay: **(+3, 2.5, +7)**、サイズ 4 m × 2 m パネル(Rev.4)。RulesPanel と横並びでサイズ統一。Visual の Collider は OFF。JP/EN 切替は LocalizationManager 経由で RulesPanel と同期(Local 状態、非 Synced)
 
 ### 賞品エリア(PrizeArea.prefab)
 

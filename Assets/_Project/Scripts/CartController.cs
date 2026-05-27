@@ -12,13 +12,23 @@ public class CartController : UdonSharpBehaviour
     public float speed = 2.0f;
     public VRCStation station;
 
+    [Header("Visual")]
+    [Tooltip("着座者の好み色で染める対象 Renderer (Cart の Visual)")]
+    public Renderer cartVisualRenderer;
+
     [Header("References")]
     public GameManager gameManager;
     public AmidakujiGenerator generator;
+    [Tooltip("着座者の好み色を取得するため")]
+    public ColorPreferenceManager colorManager;
 
     // 着座者同期(architecture.md §着座者同期 / tasklist Phase 4 パターン A)
     // Cart Owner が書込 → Master の OnDeserialization で gameManager._RegisterParticipant 集約
     [UdonSynced] public int seatedPlayerId = -1;
+
+    // 着座者の好み色インデックス(ColorPreferenceManager.paletteColors のインデックス)。
+    // -1 = 未着座 or 未選択(壁染色は defaultWallColor、Visual は sharedMaterial 既定色)
+    [UdonSynced] public int colorIndex = -1;
 
     // ローカル状態
     // 起点1 + (横線渡り 11 段 × 2 waypoint) + 終点1 = 24 が理論上限
@@ -36,6 +46,11 @@ public class CartController : UdonSharpBehaviour
     private int _goalLaneIndex;
     public int GoalLaneIndex { get { return _goalLaneIndex; } }
 
+    // Visual 色更新用(MaterialPropertyBlock で Static Batching と両立)
+    private MaterialPropertyBlock _propBlock;
+    private int _lastColorIndex;
+    private const string COLOR_PROP = "_Color";
+
     void Start()
     {
         _waypoints = new Vector3[MAX_WAYPOINTS];
@@ -44,6 +59,37 @@ public class CartController : UdonSharpBehaviour
         _totalDuration = 0f;
         _hasNotifiedGoal = false;
         _goalLaneIndex = laneIndex;
+        _propBlock = new MaterialPropertyBlock();
+        _lastColorIndex = -2; // 初回 _RefreshVisualColor で必ず適用させる
+        _RefreshVisualColor();
+    }
+
+    // GameManager (壁染色) / ColorPreferenceManager (Visual 同期) から呼ばれる
+    public Color GetCartColor()
+    {
+        if (colorManager != null && colorIndex >= 0)
+        {
+            return colorManager.GetPaletteColor(colorIndex);
+        }
+        return Color.white;
+    }
+
+    // Cart Visual の色を colorIndex に追従させる。OnDeserialization / OnStationEntered /
+    // ColorPreferenceManager._PropagateToSeatedCart から呼ばれる(同値 no-op で冪等)
+    public void _RefreshVisualColor()
+    {
+        if (cartVisualRenderer == null || _propBlock == null) return;
+        if (colorIndex < 0)
+        {
+            // 未選択は MaterialPropertyBlock クリアで sharedMaterial 既定色に戻す
+            cartVisualRenderer.SetPropertyBlock(null);
+        }
+        else if (colorManager != null)
+        {
+            _propBlock.SetColor(COLOR_PROP, colorManager.GetPaletteColor(colorIndex));
+            cartVisualRenderer.SetPropertyBlock(_propBlock);
+        }
+        _lastColorIndex = colorIndex;
     }
 
     // GameManager._ApplyState() から同フレームで呼ばれる(Rebuild 完了後)。
@@ -65,6 +111,13 @@ public class CartController : UdonSharpBehaviour
         _totalDuration = 0f;
         _hasNotifiedGoal = false;
         _isExitingByGoal = false;
+        // Idle 復帰時に Cart を起点位置へ戻す(Phase 6 修正:
+        // 旧設計では _waypointCount=0 のみで position 据置だったため、
+        // ResultDisplay → Idle 遷移後も Cart が終点に残る UX 不良があった)
+        if (generator != null)
+        {
+            transform.position = new Vector3(generator.LaneX(laneIndex), 0f, generator.TOP_Y);
+        }
     }
 
     void Update()
@@ -202,13 +255,21 @@ public class CartController : UdonSharpBehaviour
             _isLocalSeated = true;
             _isExitingByGoal = false;
 
-            // 着座者が Cart の Owner となり seatedPlayerId を書込 → Master が OnDeserialization で集約
+            // 着座者が Cart の Owner となり seatedPlayerId と colorIndex を書込
+            // → Master が OnDeserialization で _RegisterParticipant 集約
             if (!Networking.IsOwner(gameObject))
             {
                 Networking.SetOwner(player, gameObject);
             }
             seatedPlayerId = player.playerId;
+            if (colorManager != null)
+            {
+                colorIndex = colorManager.localColorIndex;
+            }
             RequestSerialization();
+
+            // Local 即時 Visual 反映(OnDeserialization は Owner では発火しない)
+            _RefreshVisualColor();
 
             // Master 自身着座時は OnDeserialization が呼ばれないため直接呼出(対称性)
             if (Networking.IsMaster && gameManager != null)
@@ -235,13 +296,16 @@ public class CartController : UdonSharpBehaviour
             }
             else
             {
-                // リタイア: 参加者枠を空ける(Cart Owner のまま seatedPlayerId=-1 書込)
+                // リタイア: 参加者枠を空ける(Cart Owner のまま seatedPlayerId=-1 / colorIndex=-1)
                 if (!Networking.IsOwner(gameObject))
                 {
                     Networking.SetOwner(player, gameObject);
                 }
                 seatedPlayerId = -1;
+                colorIndex = -1;
                 RequestSerialization();
+
+                _RefreshVisualColor();
 
                 if (Networking.IsMaster && gameManager != null)
                 {
@@ -257,6 +321,26 @@ public class CartController : UdonSharpBehaviour
         var local = Networking.LocalPlayer;
         if (local == null) return;
         _TeleportToPrizeArea(local);
+
+        // Late Joiner シナリオ予防(Phase 5 持越し): ResultDisplay 中に参加した Joiner が
+        // Cart.OnDeserialization で古い PID を受信し _RegisterParticipant に流して
+        // participantPlayerIds[] に誤登録するのを防ぐ。
+        // _ReturnToIdle の全リセットは ResultDisplay 終了時(10 秒後)まで走らないため、
+        // それより前のタイミングをカバーする(OnStationExited リタイア分岐と対称)。
+        if (!Networking.IsOwner(gameObject))
+        {
+            Networking.SetOwner(local, gameObject);
+        }
+        seatedPlayerId = -1;
+        colorIndex = -1;
+        RequestSerialization();
+
+        _RefreshVisualColor();
+
+        if (Networking.IsMaster && gameManager != null)
+        {
+            gameManager._RegisterParticipant(laneIndex, -1);
+        }
     }
 
     private void _TeleportToPrizeArea(VRCPlayerApi player)
@@ -279,6 +363,12 @@ public class CartController : UdonSharpBehaviour
         if (Networking.IsMaster && gameManager != null)
         {
             gameManager._RegisterParticipant(laneIndex, seatedPlayerId);
+        }
+
+        // colorIndex 同期: 他クライアントは Owner の書込を受信して Visual を追従
+        if (colorIndex != _lastColorIndex)
+        {
+            _RefreshVisualColor();
         }
     }
 

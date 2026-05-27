@@ -8,6 +8,12 @@
     },
     "com.vrchat.core.vpm-resolver": {
       "version": "0.1.29"
+    },
+    "net.narazaka.vrchat.tmp-fallback-fonts-jp": {
+      "version": "1.0.2"
+    },
+    "dev.onevr.vrworldtoolkit": {
+      "version": "3.4.1"
     }
   },
   "locked": {
@@ -23,6 +29,14 @@
     },
     "com.vrchat.core.vpm-resolver": {
       "version": "0.1.29",
+      "dependencies": {}
+    },
+    "net.narazaka.vrchat.tmp-fallback-fonts-jp": {
+      "version": "1.0.2",
+      "dependencies": {}
+    },
+    "dev.onevr.vrworldtoolkit": {
+      "version": "3.4.1",
       "dependencies": {}
     }
   }

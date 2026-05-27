@@ -226,6 +226,8 @@ public class GameManager : UdonSharpBehaviour
             if (prizeAreas != null && goalLane >= 0 && goalLane < prizeAreas.Length
                 && prizeAreas[goalLane] != null)
             {
+                // ゴール到達カートの色で壁を染める(Phase 6 追加)
+                prizeAreas[goalLane]._SetWallColor(carts[startLane].GetCartColor());
                 prizeAreas[goalLane].PlayEffect(kind, true);
             }
         }
@@ -290,6 +292,8 @@ public class GameManager : UdonSharpBehaviour
                 if (goalLane < 0 || goalLane >= prizeAreas.Length) continue;
                 if (prizeAreas[goalLane] == null) continue;
                 int kind = (goalLane < _effectKinds.Length) ? _effectKinds[goalLane] : 0;
+                // ゴール到達カートの色で壁を染める(Phase 6 追加)
+                prizeAreas[goalLane]._SetWallColor(carts[i].GetCartColor());
                 // withIndividualSound=false: 共通 SE と二重発音を避ける
                 prizeAreas[goalLane].PlayEffect(kind, false);
             }

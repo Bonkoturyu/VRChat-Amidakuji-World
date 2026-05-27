@@ -23,10 +23,21 @@ public class PrizeArea : UdonSharpBehaviour
     public AudioSource explosionAudio;
     public AudioSource confettiAudio;
 
+    [Header("Wall Color Override (Phase 6 追加)")]
+    [Tooltip("ゴール到達カートの色で染める壁の Renderer 群")]
+    public Renderer[] colorTargetWalls;
+    [Tooltip("Idle 復帰時に戻すデフォルト色(M_Wall_Generic の元の色に揃える)")]
+    public Color defaultWallColor = Color.white;
+
+    // MaterialPropertyBlock を使うと Static Batching と干渉せず色変更可能
+    private MaterialPropertyBlock _propBlock;
+    private const string COLOR_PROP = "_Color";
+
     void Start()
     {
         if (explosionEffect != null) explosionEffect.SetActive(false);
         if (confettiEffect != null) confettiEffect.SetActive(false);
+        _propBlock = new MaterialPropertyBlock();
     }
 
     // GameManager から呼ばれる。各クライアントが独立に呼ぶ (seed 由来決定論で発火は同期)。
@@ -65,6 +76,28 @@ public class PrizeArea : UdonSharpBehaviour
         {
             _StopParticlesIn(confettiEffect);
             confettiEffect.SetActive(false);
+        }
+        _ResetWallColor();
+    }
+
+    // GameManager から、ゴール到達カートの色で壁を染める
+    public void _SetWallColor(Color color)
+    {
+        if (colorTargetWalls == null || _propBlock == null) return;
+        _propBlock.SetColor(COLOR_PROP, color);
+        for (int i = 0; i < colorTargetWalls.Length; i++)
+        {
+            if (colorTargetWalls[i] != null) colorTargetWalls[i].SetPropertyBlock(_propBlock);
+        }
+    }
+
+    public void _ResetWallColor()
+    {
+        if (colorTargetWalls == null || _propBlock == null) return;
+        _propBlock.SetColor(COLOR_PROP, defaultWallColor);
+        for (int i = 0; i < colorTargetWalls.Length; i++)
+        {
+            if (colorTargetWalls[i] != null) colorTargetWalls[i].SetPropertyBlock(_propBlock);
         }
     }
 

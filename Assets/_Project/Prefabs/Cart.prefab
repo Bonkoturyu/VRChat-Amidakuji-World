@@ -230,9 +230,12 @@ MonoBehaviour:
   laneIndex: 0
   speed: 2
   station: {fileID: 4440464639094877287}
-  startOnEnter: 1
-  lookAtMovingDirection: 0
-  waypointMarkers: []
+  cartVisualRenderer: {fileID: 3064023612584327977}
+  gameManager: {fileID: 0}
+  generator: {fileID: 0}
+  colorManager: {fileID: 0}
+  seatedPlayerId: -1
+  colorIndex: -1
 --- !u!114 &6198093451481357868
 MonoBehaviour:
   m_ObjectHideFlags: 0
