@@ -269,13 +269,25 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 7: Android Platform 切替 + 初期最適化 [5/28] [1日] ★山3
 
+**事前監査結果 (2026-05-28、切替前の静的解析)**:
+
+| 項目 | Android Good 上限 | 現状 | 判定 |
+| --- | --- | --- | --- |
+| Material Count | 20 | **19** (`Assets/_Project/Materials/*.mat` 実体カウント、[material-set.md §1](./material-set.md#1-マテリアル一覧-計-19)) | ⚠ ヘッドルーム +1 |
+| Texture サイズ | 1024×1024 | 全 .mat で `m_Texture: {fileID: 0}`(プレースホルダ運用) | ✓ 問題なし(Phase 9 で追加時に override 要) |
+| GPU Instancing | 全マテリアルで有効化 | Standard Lite 系 16 件すべて `m_EnableInstancingVariants: 1` / Particles 系 3 件は Inspector 項目なし(仕様、[material-set.md §1 脚注](./material-set.md#1-マテリアル一覧-計-19)) | ✓ |
+| Transparent Materials | 使用しない | Standard Lite で alpha blend なし、Particles/Additive・Multiply は別経路、TMP も別 | ✓ |
+| Tri 数 | 250,000 | **静的解析不可**(Phase 7 切替後に Stats で実測) | ⏳ Phase 7 で確認 |
+
+事前監査により **Material Count / Texture / GPU Instancing / Transparent の 4 項目はバジェット内**。Tri 数は Platform 切替後 Stats でのみ確認可能。VCC 切替自体は粛々と進めれば良い。
+
 - [ ] VCC SDK Control Panel で Build Platform を Android に切替
 - [ ] **再インポート完了まで待機**(プロジェクトサイズによっては数十分かかる)
 - [ ] SDK のバリデーションメッセージを確認・対応
-- [ ] マテリアル数を Stats でカウント、20以下に絞る
-- [ ] テクスチャを 1024×1024 以下に調整
+- [x] マテリアル数を Stats でカウント、20以下に絞る — 事前監査済(19/20)、Stats 値と一致確認のみ
+- [x] テクスチャを 1024×1024 以下に調整 — 事前監査済(テクスチャ未使用)
 - [ ] Tri 数を Stats で確認、250,000 以下に
-- [ ] GPU Instancing を全マテリアルで有効化
+- [x] GPU Instancing を全マテリアルで有効化 — 事前監査済(全件 ON)
 - [ ] Android 向け Private アップロード成功
 
 **完了基準**: Android プラットフォームでビルドが通り、Quest 実機で Join できる
@@ -304,6 +316,34 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - [ ] パフォーマンス問題があれば追加最適化
   - [ ] FPS 60 未満ならテクスチャ・Tri 削減
   - [ ] DrawCall 多すぎなら Static Batching 確認
+
+### Phase 8 調整候補値の叩き台 (2026-05-28、Phase 7 着手前事前準備)
+
+現行値は [phase4-effect-prefab-checklist.md](./phase4-effect-prefab-checklist.md) 参照。
+HMD 実機で「過剰 / 物足りない」のどちらかが出たときに即試せる試行値セット:
+
+Confetti `Start Color` 拡張案(現行 5 色 → 8 色 / 10 色):
+
+| バリエーション | 色セット (HEX) |
+| --- | --- |
+| 中間調 5 色(原色置換) | `#FF3333` / `#FFCC00` / `#33CC33` / `#3399FF` / `#CC66CC` |
+| 8 色拡張(中間調 + 3 色) | 上記 + `#FF8833`(橙) / `#9933FF`(紫) / `#00CCCC`(シアン) |
+| 10 色拡張(8 色 + 2 色) | 上記 + `#FFFFFF`(白フラッシュ感) / `#88FF88`(明るい緑) |
+
+`Color over Lifetime` の Gradient Color Marker 追加で対応可、`Start Color` の Random Color from Gradient を併用する場合は Gradient マーカーを追加する。
+
+粒子サイズ・寿命の試行値(`Start Size` / `Start Lifetime`):
+
+| ファイル | プロパティ | 現行値 | 1.2x 試行 | 1.5x 試行 |
+| --- | --- | --- | --- | --- |
+| ConfettiEffect | Start Size | 0.15〜0.3 | 0.18〜0.36 | 0.225〜0.45 |
+| ConfettiEffect | Start Lifetime | 3.0 | 3.6 | 4.5 |
+| ExplosionEffect (Fireball) | Start Size | 0.8〜1.5 | 0.96〜1.8 | 1.2〜2.25 |
+| ExplosionEffect (Fireball) | Start Lifetime | 1.2 | 1.44 | 1.8 |
+| ExplosionEffect (Smoke) | Start Size | 1.0〜2.0 | 1.2〜2.4 | 1.5〜3.0 |
+| ExplosionEffect (Smoke) | Start Lifetime | 2.5 | 3.0 | 3.75 |
+
+HMD 110° 視野角 + 観戦距離 34 m の体感判定で 1.0x / 1.2x / 1.5x のいずれかを選ぶ。FPS 影響が出るなら逆に 0.8x も試行候補。
 
 **完了基準**: Quest 実機で全体験が 60 FPS 以上、機能差なし
 

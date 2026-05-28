@@ -22,14 +22,26 @@ Phase 1 着手時点の v1.0 マテリアル定義。PC + Android クロスプ�
 | 9 | `M_LaneColor_3` | `VRChat/Mobile/Standard Lite` | 単色 | — | ✓ | Cart_3 ボディ |
 | 10 | `M_Button_Active` | `VRChat/Mobile/Standard Lite` | 単色(緑 + Emission) | — | ✓ | StartButton 押下可状態 |
 | 11 | `M_Button_Inactive` | `VRChat/Mobile/Standard Lite` | 単色(灰) | — | ✓ | StartButton 無効状態 |
-| 12 | `M_UI_Display` | TextMeshPro `Mobile/Distance Field` | TMP Font Atlas | 1024 | ✓ | ResultDisplay / RulesPanel のテキスト面 |
+| 12 | ~~`M_UI_Display`~~ | (削除) | — | — | — | Phase 5 で **未実装方針確定**。TMP は Font Asset 付属 Material(`NotoSansJP-Medium SDF Material` 等)を直接使用するため新規 .mat 不要。表上 1 件を欠番扱い |
 | 13 | `M_FX_Explosion_Fireball` | `VRChat/Mobile/Particles/Additive` | (Unity 既定 `Default-Particle`、Phase 8 で差し替え可) | 64(既定) | —※ | ExplosionEffect.prefab の火球用 ParticleSystem |
 | 14 | `M_FX_Explosion_Smoke` | `VRChat/Mobile/Particles/Multiply` | (同上) | 64 | —※ | ExplosionEffect.prefab の煙用(灰白色、Multiply で煤感補強) |
 | 15 | `M_FX_Confetti` | `VRChat/Mobile/Particles/Additive` | (同上) | 64 | —※ | ConfettiEffect.prefab の紙片用、Color over Lifetime で多色化 |
+| 16 | `M_StartButton_Enabled` | `VRChat/Mobile/Standard Lite` | 単色(緑 + Emission) | — | ✓ | Phase 5 追加。StartButton 押下可状態(参加者≥1 + Idle)。`M_Button_Active` と用途は近いが StartButton 専用に分離 |
+| 17 | `M_StartButton_Disabled` | `VRChat/Mobile/Standard Lite` | 単色(灰) | — | ✓ | Phase 5 追加。StartButton 無効状態(参加者 0 または 走行中)。`M_Button_Inactive` 同様、専用に分離 |
+| 18 | `M_FinaleToggle_ModeA` | `VRChat/Mobile/Standard Lite` | 単色(青系) | — | ✓ | Phase 5 追加。FinaleModeToggle = A モード(一斉フィナーレ)状態 |
+| 19 | `M_FinaleToggle_ModeB` | `VRChat/Mobile/Standard Lite` | 単色(橙系) | — | ✓ | Phase 5 追加。FinaleModeToggle = B モード(個別発火)状態 |
+| 20 | `M_FinaleToggle_Disabled` | `VRChat/Mobile/Standard Lite` | 単色(灰) | — | ✓ | Phase 5 追加。FinaleModeToggle 非 Master / 非 Idle 時の無効表示 |
 
 > **※ Particles 系 3 マテリアルの注意**: `VRChat/Mobile/Particles/*` シェーダーは Quest 向け最小プロパティ構成のため、**`Tint Color` プロパティおよび `Enable GPU Instancing` チェックボックスを Inspector に持たない**。マテリアル側の公開プロパティは Particle Texture と Render Queue / Double Sided Global Illumination のみ。**色制御はすべて Particle System 側**(`Start Color` / `Color over Lifetime`)で行う。GPU Instancing 相当のバッチング最適化は Particle System Renderer モジュール側で管理される(Standard Lite 系の `Enable GPU Instancing` フラグとは別経路、表の `—` は「マテリアル Inspector 上の項目なし」を示す)。2026-05-19 ユーザー作業中に実物理仕様を確認・反映。
 
-**合計 15 マテリアル**(バジェット 20 に対し +5 のヘッドルーム。Phase 5 の UI 追加・Phase 9 の装飾に充当)。Phase 4 着手時 13〜15 を追加(`M_FX_*` 3 個、[ADR-0012](./adr/0012-goal-effect-randomized.md))。
+**合計 19 マテリアル**(`Assets/_Project/Materials/*.mat` 実体カウント。バジェット 20 に対し +1 のヘッドルーム)。内訳:
+
+- Phase 1 定義: 11 件(`M_Floor_Common` / `M_Line` / `M_Wall_Generic` / `M_Floor_Prize` / `M_Barrier` / `M_LaneColor_0〜3` / `M_Button_Active` / `M_Button_Inactive`)
+- Phase 4 で `M_FX_*` 3 件追加([ADR-0012](./adr/0012-goal-effect-randomized.md))
+- Phase 5 で UI 系 5 件追加(`M_StartButton_*` / `M_FinaleToggle_*`)
+- 当初枠 12 番(`M_UI_Display`)は未実装方針確定(TMP 標準 Material 流用)
+
+Phase 7 着手前 (2026-05-28) の事前監査で確認: 全 `Standard Lite` 系 16 件で `m_EnableInstancingVariants: 1`(GPU Instancing ON)、Texture は全件 `m_Texture: {fileID: 0}`(プレースホルダ運用、Phase 9 で必要分のみ追加方針)、`Mobile/Particles/*` 3 件は仕様上 Instancing 項目なし。Android Good バジェットに対し問題なし。
 
 スカイボックスは Lighting Settings の Skybox Material として別管理。v1.0 は Unity 標準
 `Default-Skybox` (Procedural) を流用し、新規マテリアル定義は行わない(World パフォーマンスの

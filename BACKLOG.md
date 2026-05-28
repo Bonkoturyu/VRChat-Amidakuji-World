@@ -85,9 +85,10 @@ Phase 10 の「ワールド名・サムネイル・説明文設定」で使用�
 
 - **World 名**: `Ghost-Leg Express — 巨大あみだくじ`(英語タイトル + 日本語サブ併記)
 - **サムネイル**: 斜め上空俯瞰構図(Z=+20, Y=15, X=0、X 軸 -45° あたりから 4 台のカートが縦線を走行中の画)。現状サムネで暫定 OK、Phase 10 で再撮影判断
-- **ワールド説明文(暫定)**:
+- **ワールド説明文(暫定、JP/EN 並記)** — Phase 6 で UI を JP/EN 多言語化したことに合わせて説明文も両言語化:
 
 ```text
+[ 日本語 ]
 自動巡回カートで体験する、巨大あみだくじワールド。
 
 参加者: スタート位置のカートに座ると、ランダム生成されたあみだくじを自動で巡回。
@@ -96,13 +97,30 @@ Phase 10 の「ワールド名・サムネイル・説明文設定」で使用�
 観戦者: あみだくじ構造内を自由に走り回り、カートを追いかけて間近で観戦できます。
 ゴール手前のバリアより先に行けるのは参加者のみ。
 
-最大 4 人参加 + 観戦者多数 OK / Quest 対応 / PC 対応。
+最大 4 人参加 + 観戦者多数 OK / Quest 対応 / PC 対応 / UI は日本語/英語切替対応。
 
 スタートボタンはインスタンスオーナーのみ押下可能。
 演出モード(全員ゴール後一斉発火 / 個別到達時即発火)も切り替え可能です。
+
+[ English ]
+Experience a giant ghost-leg lottery (Amidakuji) world by riding auto-traveling carts.
+
+Players: Sit on a cart at the start. You'll traverse a procedurally generated
+lottery path automatically. At the destination prize zone, either an explosion
+(miss) or confetti (celebration) fires at random.
+
+Spectators: Run freely across the lottery floor and chase the carts up close.
+Only participants can pass the goal barrier.
+
+Up to 4 players + many spectators / Quest compatible / PC compatible /
+UI supports JP/EN toggle.
+
+Only the instance owner can press the start button.
+Finale mode (synchronized burst after all carts reach the goal /
+individual burst on each cart's arrival) is switchable.
 ```
 
-文字数・改行は Phase 10 で VRChat 説明文 UI の実カット位置を見て最終調整。
+文字数・改行は Phase 10 で VRChat 説明文 UI の実カット位置を見て最終調整。VRChat の説明欄は単一テキスト UI なので JP/EN を 1 枠に並記する想定(`[ 日本語 ]` / `[ English ]` のラベル区切り)。
 
 ### Open Questions
 
