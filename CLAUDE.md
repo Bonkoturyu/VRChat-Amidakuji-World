@@ -53,6 +53,7 @@ amidakuji-world/
 - 「**なぜそう決めたか**」→ `docs/adr/`
 - 「**何が残っているか**」→ `BACKLOG.md`
 - 「**どう運用するか(Git/CI/プラットフォーム)**」→ `docs/dev-workflow.md`
+- 「**どこで踏むか(既知の落とし穴)**」→ `docs/ui-pitfalls.md`
 
 ## 開発フロー
 
