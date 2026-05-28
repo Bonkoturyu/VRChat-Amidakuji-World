@@ -252,7 +252,8 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 6: Late Joiner / エッジケース (PC) [5/27] [1日]
 
-- [ ] **Phase 5 持越し: Cart `_DelayedTeleportToPrize` 内で `seatedPlayerId=-1` 書込追加** — ゴール退出経路でリセットされない状態が残り、ResultDisplay 終了直後の Late Joiner + Owner 移譲タイミングで古い PID が `_RegisterParticipant` 経由で `participantPlayerIds[]` に誤登録される可能性。修正は 1 行追加で安価
+- [x] **Phase 5 持越し: Cart のリセット処理見直し** — `2f3e3f3` で当初方針どおり `_DelayedTeleportToPrize` 内に `seatedPlayerId=-1` 書込追加。直後の `4216b24` で「A モードの `_FireFinale` が `participantPlayerIds[]` を参照して占有判定する」回帰を発見し方針変更:リセットを `_OnRaceReset()`(ResultDisplay → Idle 遷移時)に遅延、加えて `Cart.OnDeserialization` で ResultDisplay 中の Master 集約をスキップして Late Joiner 誤登録予防を両立
+- [x] **(追加) ResultDisplay 表示問題解消** — `4216b24`。Canvas Pos Z=-0.06 と Visual Cube 厚み 0.1 の組合せで Z-Fighting 発生 → Canvas Pos Z=-0.1 でマージン 0.05 確保。separator 罫線 `─`(U+2500、Empty SDF + NotoSansJP Fallback でグリフ不在)を ASCII `=` に置換し TMP 警告も解消。落とし穴は [ui-pitfalls.md](./ui-pitfalls.md) に集約
 - [ ] Late Joiner テスト: Idle中・Running中・ResultDisplay中それぞれで途中参加
 - [ ] Master交代テスト: 走行中にMasterが退出
 - [ ] **Player Persistence 動作テスト**(Phase 5 で実装した B モード永続化、[ADR-0012](./adr/0012-goal-effect-randomized.md))
@@ -261,8 +262,8 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
   - [ ] Master 交代時、新 Master の Persistence 値があれば適用される
 - [ ] 全員退出テスト
 - [ ] 着座中の人がインスタンスを抜けた場合
-- [ ] VRトリガーで走行中に退出した場合のリタイア処理
-- [ ] ルール説明パネル設置(追いかけ式観戦の説明含む)
+- [x] VRトリガーで走行中に退出した場合のリタイア処理 — Phase 2 で 4 種退出経路の HMD Build & Test 完了済(commit `b8c7103`、[ADR-0007](./adr/0007-vrcstation-transform-cart.md))。Phase 6 リスト掲載は Phase 2 からの転記重複
+- [x] ルール説明パネル設置(追いかけ式観戦の説明含む) — `2f3e3f3` で RulesPanel Rev.4 完成(4 Tab: 参加/観戦/モード/色、JP/EN 切替対応、`RulesPanelController` + `TabButton` + `LangToggleButton`)
 
 **完了基準**: 想定エッジケースで全てクラッシュ・状態不整合が起きない
 

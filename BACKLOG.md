@@ -23,6 +23,11 @@
 - [ ] Phase 9: ライティング・最終最適化(PC + Android)
 - [ ] Phase 10: Community Labs 公開(PC + Android 両ビルド)
 
+### v1.0 範囲内で追加実装(当初スコープ外、開発中に合流)
+
+- **多言語対応 (EN/JP 切替)** — Phase 6 (`2f3e3f3`) で `LocalizationManager` + `LangToggleButton` を実装。RulesPanel と ResultDisplay の両 UI で JP/EN を動的切替、現状は Local 状態(永続化なし)。当初アイデアプール掲載だったが、RulesPanel Rev.4 制作タイミングで実装コストが小さく合流。
+- **カート個人カラー機能** — Phase 6 (`2f3e3f3`) で `ColorPreferenceManager` + `ColorPaletteButton` を実装。MD500 系 8 色パレットを Player Persistence で永続化、`OnPlayerRestored` 初回は `playerId % 8` の決定論既定色。着座中 Cart に `colorIndex` を同期伝播、ゴール時は `PrizeArea._SetWallColor` で壁色も染色([ADR-0012](./docs/adr/0012-goal-effect-randomized.md) の Cart カラーバリエーション拡張枠)。
+
 ## v1.1 (公開後の最優先課題)
 
 - [ ] **iOS 対応**
@@ -111,5 +116,4 @@ Phase 10 の「ワールド名・サムネイル・説明文設定」で使用�
 - 観戦者からカートに「応援エモート」を送れる
 - 賞品エリアにミニゲーム配置
 - 季節イベント装飾 (ハロウィン版あみだくじ等)
-- 多言語対応 (EN/JP切替)
 - 「あみだくじ巨大化スケール変更」モード(さらに巨大に・ミニチュアに)
