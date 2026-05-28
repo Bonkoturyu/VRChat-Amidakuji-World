@@ -18,7 +18,7 @@
 - [x] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール演出(2026-05-21 完了、約3日前倒し。`_ApplyState()` 冪等化で OnDeserialization 高頻度発火問題を解消、演出割当は終点 lane ベースに修正 [ADR-0012 §4](./docs/adr/0012-goal-effect-randomized.md))
 - [x] Phase 5: ゲームフロー UI 完成(2026-05-23、Persistence 復元 V9-V11 は Phase 6 で Private アップロード環境にて検証予定)
 - [ ] Phase 6: Late Joiner / エッジケース対応 (PC)
-- [ ] Phase 7: Android Platform 切替 + 初期最適化
+- [x] Phase 7: Android Platform 切替 + 初期最適化(2026-05-28、Quest 実機 Join + RulesPanel + Cart 着座まで動作確認、Tri 数 Stats と StartButton Proximity は Phase 8 持越し)
 - [ ] Phase 8: Quest 実機テスト + 調整
 - [ ] Phase 9: ライティング・最終最適化(PC + Android)
 - [ ] Phase 10: Community Labs 公開(PC + Android 両ビルド)
@@ -74,6 +74,7 @@
 - **`UdonSynced int[4]` の Late Joiner 受信タイミング**: Phase 6 で複数クライアント実機テスト
 - **ゴール手前バリアの隙間設計**: カートだけが通れて歩行者は通れない物理形状、Phase 4 で実機調整必要
 - **Quest 実機でのパフォーマンス**: Phase 8 で実機 FPS 測定、必要に応じて Tri数・マテリアル数を絞り込み
+- **StartButton Proximity が Cart 着座距離に対し狭すぎる**(Quest 実機判定 2026-05-28 で発見): 現状 `Proximity: 2 m` に対し、Cart_0 (X=-6) / Cart_3 (X=+6) と StartButton (X=0, Z=2) の横距離は 6 m、Cart_1/2 でも 2 m ギリギリ。Master が Cart に着座すると StartButton を押せず、Master 一人プレイのフローが破綻する。最短修正は Inspector で `Proximity: 2 → 8〜10`(`StartButton.cs` の Master 二重ガード済のため観戦者の Use 表示は出るが押下は no-op、許容)。Phase 8 着手時に対応必須(v1.0 公開前ブロッカー)
 
 ### 検証済み(以前は不安要素だったもの)
 

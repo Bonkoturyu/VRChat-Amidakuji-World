@@ -281,16 +281,20 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 事前監査により **Material Count / Texture / GPU Instancing / Transparent の 4 項目はバジェット内**。Tri 数は Platform 切替後 Stats でのみ確認可能。VCC 切替自体は粛々と進めれば良い。
 
-- [ ] VCC SDK Control Panel で Build Platform を Android に切替
-- [ ] **再インポート完了まで待機**(プロジェクトサイズによっては数十分かかる)
-- [ ] SDK のバリデーションメッセージを確認・対応
+- [x] VCC SDK Control Panel で Build Platform を Android に切替 — 2026-05-28
+- [x] **再インポート完了まで待機**(プロジェクトサイズによっては数十分かかる) — 2026-05-28
+- [x] SDK のバリデーションメッセージを確認・対応 — 警告なくアップロードまで通過(2026-05-28)
 - [x] マテリアル数を Stats でカウント、20以下に絞る — 事前監査済(19/20)、Stats 値と一致確認のみ
 - [x] テクスチャを 1024×1024 以下に調整 — 事前監査済(テクスチャ未使用)
-- [ ] Tri 数を Stats で確認、250,000 以下に
+- [ ] Tri 数を Stats で確認、250,000 以下に — Phase 7 では未計測、Phase 8 の実機 FPS 計測時に確認
 - [x] GPU Instancing を全マテリアルで有効化 — 事前監査済(全件 ON)
-- [ ] Android 向け Private アップロード成功
+- [x] Android 向け Private アップロード成功 — 2026-05-28、Quest 実機で Join + RulesPanel タップ + Cart 着座まで動作確認
 
-**完了基準**: Android プラットフォームでビルドが通り、Quest 実機で Join できる
+**完了基準**: Android プラットフォームでビルドが通り、Quest 実機で Join できる — ✅ 達成(2026-05-28)
+
+**Phase 7 Quest 実機での発見事項(Phase 8 持越し)**:
+
+- **StartButton 構造的に届かない問題** — Master が Cart_0 (X=-6) / Cart_3 (X=+6) に着座すると、StartButton (X=0, Z=2) との横距離 6 m に対し `Proximity: 2` で Interact 不可。Cart_1/2 でもギリギリ。修正最短は Inspector で Proximity を 2 → 8〜10 に拡大(`StartButton.cs` 側で Master 二重ガード済のため観戦者誤押下は no-op)。Phase 8 開始時に対応([BACKLOG.md §課題・既知の制約](../BACKLOG.md#技術的不安要素phase着手時に検証する))
 
 ## Phase 8: Quest 実機テスト + 調整 [5/29] [1日]
 
