@@ -30,7 +30,7 @@ public class ResultDisplayUI : UdonSharpBehaviour
     [Header("Localized Labels")]
     public string headerJP = "レース結果";
     public string headerEN = "Race Result";
-    public string separatorLine = "─────────────────────";
+    public string separatorLine = "=====================";
     public string emptyLabelJP = "(空席)";
     public string emptyLabelEN = "(empty)";
     public string retiredLabelJP = "(退出)";

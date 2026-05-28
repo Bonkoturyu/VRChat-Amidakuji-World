@@ -118,6 +118,21 @@ public class CartController : UdonSharpBehaviour
         {
             transform.position = new Vector3(generator.LaneX(laneIndex), 0f, generator.TOP_Y);
         }
+
+        // Cart Owner が seatedPlayerId / colorIndex をリセット。
+        // ゴール退出後も Cart Owner は退出者のまま保持され、ここまで来る。
+        // _FireFinale が participantPlayerIds[] を参照して動くため、リセットは
+        // ResultDisplay → Idle 遷移時 (本メソッド呼出時) まで遅延させる。
+        if (Networking.IsOwner(gameObject))
+        {
+            if (seatedPlayerId != -1 || colorIndex != -1)
+            {
+                seatedPlayerId = -1;
+                colorIndex = -1;
+                RequestSerialization();
+            }
+        }
+        _RefreshVisualColor();
     }
 
     void Update()
@@ -322,25 +337,12 @@ public class CartController : UdonSharpBehaviour
         if (local == null) return;
         _TeleportToPrizeArea(local);
 
-        // Late Joiner シナリオ予防(Phase 5 持越し): ResultDisplay 中に参加した Joiner が
-        // Cart.OnDeserialization で古い PID を受信し _RegisterParticipant に流して
-        // participantPlayerIds[] に誤登録するのを防ぐ。
-        // _ReturnToIdle の全リセットは ResultDisplay 終了時(10 秒後)まで走らないため、
-        // それより前のタイミングをカバーする(OnStationExited リタイア分岐と対称)。
-        if (!Networking.IsOwner(gameObject))
-        {
-            Networking.SetOwner(local, gameObject);
-        }
-        seatedPlayerId = -1;
-        colorIndex = -1;
-        RequestSerialization();
-
-        _RefreshVisualColor();
-
-        if (Networking.IsMaster && gameManager != null)
-        {
-            gameManager._RegisterParticipant(laneIndex, -1);
-        }
+        // 注意: seatedPlayerId / colorIndex のリセットはここでは行わない。
+        // A モードの _FireFinale は participantPlayerIds[] を参照して Cart 占有を判定するため、
+        // ゴール瞬間にリセットすると壁色染色・演出が走らなくなる。
+        // リセットは ResultDisplay → Idle 遷移時の _OnRaceReset() で Cart Owner が行う。
+        // Late Joiner 誤登録予防は OnDeserialization 側で ResultDisplay 中の Master 集約を
+        // スキップすることで担保する。
     }
 
     private void _TeleportToPrizeArea(VRCPlayerApi player)
@@ -360,7 +362,10 @@ public class CartController : UdonSharpBehaviour
     {
         // Master 集約: Cart Owner 側で seatedPlayerId が更新された後、Master 側がここで反映
         // (Master 自身が Cart Owner の場合は OnStationEntered/Exited 内で直接呼出済 → 同値 no-op)
-        if (Networking.IsMaster && gameManager != null)
+        // ResultDisplay 中は Late Joiner が古い seatedPlayerId を受信して participantPlayerIds[] を
+        // 誤上書きするのを防ぐため、Master 集約をスキップする(結果表示の整合性確保)。
+        if (Networking.IsMaster && gameManager != null
+            && gameManager.gameState != GameManager.STATE_RESULT_DISPLAY)
         {
             gameManager._RegisterParticipant(laneIndex, seatedPlayerId);
         }
