@@ -260,8 +260,13 @@ public class CartController : UdonSharpBehaviour
 
         if (player.isLocal)
         {
-            // Idle 以外で着座した場合は即時退出(走行中・ResultDisplay 中の再着座を防止)
-            if (gameManager != null && gameManager.gameState != GameManager.STATE_IDLE)
+            // Phase 8 改修: 走行中(STATE_RUNNING)のみ着座ブロック。
+            // STATE_IDLE / STATE_RESULT_DISPLAY 両方で着座を許可し、
+            // ResultDisplay 中の着座は「次レース予約」として扱う。
+            // OnDeserialization は ResultDisplay 中 Master 集約をスキップするが、
+            // 次の RequestStart() が Cart.seatedPlayerId から participantPlayerIds[] を
+            // 再構築するため最終的に整合する。
+            if (gameManager != null && gameManager.gameState == GameManager.STATE_RUNNING)
             {
                 if (station != null) station.ExitStation(player);
                 return;

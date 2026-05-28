@@ -15,8 +15,10 @@ public class GameManager : UdonSharpBehaviour
     // 1 ラウンド終端の演出視認時間 → ResultDisplay 遷移
     public const float POST_FINALE_DELAY = 1.5f;
 
-    // ResultDisplay → Idle 自動復帰時間
-    public const float RESULT_DISPLAY_DURATION = 10.0f;
+    // 賞品エリア判定の Z 閾値(GoalBarrier Z=-58.5 より奥なら賞品エリア内)。
+    // STATE_RESULT_DISPLAY → STATE_RUNNING 遷移時に、LocalPlayer がこの Z より奥なら
+    // defaultSpawn に強制テレポートして「次レース参加可能位置」に戻す。
+    public const float PRIZE_AREA_Z_THRESHOLD = -58.0f;
 
     // ComputeEffectAssignment の派生 RNG mask (ADR-0012)
     private const int EFFECT_RNG_MASK = 0x000BEEF;
@@ -30,6 +32,8 @@ public class GameManager : UdonSharpBehaviour
     public CountdownUI[] countdownUIs;
     [Tooltip("ResultDisplay 掲示 UI(Phase 5)")]
     public ResultDisplayUI resultDisplayUI;
+    [Tooltip("STATE_RUNNING 遷移時、賞品エリアにいる LocalPlayer をここへ強制テレポート(Phase 8 着座位置/戻り改修)。通常は DefaultSpawn Transform を割当")]
+    public Transform defaultSpawn;
 
     [Header("Debug / Reproducibility")]
     [Tooltip("ON のとき debugSeed をそのまま使う(再現テスト用、本番は OFF)")]
@@ -79,14 +83,28 @@ public class GameManager : UdonSharpBehaviour
     }
 
     // StartButton から呼ばれる。Master 限定。
+    // Phase 8 改修: STATE_RESULT_DISPLAY からも直接 Race 開始可能(STATE_IDLE 経由不要)。
+    // ResultDisplay 永続表示 + 次レース予約(着座)を許容する設計に対応する。
     public void RequestStart()
     {
         if (!Networking.IsMaster) return;
-        if (gameState != STATE_IDLE) return;
+        if (gameState == STATE_RUNNING) return;
 
         if (!Networking.IsOwner(gameObject))
         {
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
+        }
+
+        // STATE_RESULT_DISPLAY 中は Cart.OnDeserialization の Master 集約をスキップしている
+        // ため、participantPlayerIds[] が前レース時点で残っている。各 Cart の現状の
+        // seatedPlayerId からスナップショットを再構築する(Cart Owner の値が正)。
+        if (participantPlayerIds != null && carts != null)
+        {
+            for (int i = 0; i < participantPlayerIds.Length; i++)
+            {
+                participantPlayerIds[i] = (i < carts.Length && carts[i] != null)
+                                          ? carts[i].seatedPlayerId : -1;
+            }
         }
 
         seed = useDebugSeed ? debugSeed : (int)System.DateTime.Now.Ticks;
@@ -113,6 +131,20 @@ public class GameManager : UdonSharpBehaviour
 
         if (gameState == STATE_RUNNING)
         {
+            // Phase 8 改修: ResultDisplay 永続表示を解除
+            if (resultDisplayUI != null) resultDisplayUI._Hide();
+
+            // Phase 8 改修: 賞品エリア(GoalBarrier より奥)にいる LocalPlayer は
+            // DefaultSpawn に強制テレポート。各クライアントが自分自身を判定・移動するため
+            // VRC の TeleportTo Local 制約を回避できる。観戦エリア(MainFloor 上)の
+            // プレイヤーには影響しない。
+            var localPlayer = Networking.LocalPlayer;
+            if (localPlayer != null && defaultSpawn != null
+                && localPlayer.GetPosition().z < PRIZE_AREA_Z_THRESHOLD)
+            {
+                localPlayer.TeleportTo(defaultSpawn.position, defaultSpawn.rotation);
+            }
+
             if (generator != null) generator.Rebuild(seed);
 
             // 演出割当を seed 由来で算出(各クライアント独立、結果一致)
@@ -305,6 +337,9 @@ public class GameManager : UdonSharpBehaviour
 
     // ResultDisplay 遷移は Master が主導(gameState 同期のため)。
     // Master 以外は OnDeserialization 経由で _ApplyState される。
+    // Phase 8 改修: 自動 Idle 復帰タイマーを廃止し、StartButton 押下まで永続表示。
+    // Idle 復帰相当の処理(participantPlayerIds リセット)は RequestStart 内で
+    // Cart.seatedPlayerId から再構築する経路に統合([_ReturnToIdle] は緊急用に残置)。
     public void _EnterResultDisplay()
     {
         if (!Networking.IsMaster) return;
@@ -317,8 +352,6 @@ public class GameManager : UdonSharpBehaviour
         gameState = STATE_RESULT_DISPLAY;
         RequestSerialization();
         _ApplyState();
-
-        SendCustomEventDelayedSeconds(nameof(_ReturnToIdle), RESULT_DISPLAY_DURATION);
     }
 
     public void _ReturnToIdle()

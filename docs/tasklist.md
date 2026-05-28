@@ -321,6 +321,14 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
   - [ ] FPS 60 未満ならテクスチャ・Tri 削減
   - [ ] DrawCall 多すぎなら Static Batching 確認
 
+### Phase 8 UX 細部調整(2026-05-29 着手予定)
+
+Phase 7 Quest 実機判定および Phase 8 機能改修コミット後に判明した UX 課題:
+
+- [ ] **TMP Empty SDF Font の Underline 警告解消** — `ResultDisplayUI.cs` の `separatorLine` デフォルトは `=====================` に変更済(`4216b24`)だが、Scene Inspector で `_World/EntryArea/ResultDisplay` の `Separator Line` フィールドが `─────...` の override で残置中。Console に 9 件警告。Inspector で手動書換 or 右クリック Revert で Prefab デフォルト追従
+- [ ] **RulesPanel / ResultDisplay の高さ調整** — Quest 実機判定(2026-05-28)で「見上げ姿勢になる」高さに配置されていたとユーザー報告。地面スレスレ(Position.y を 1-2 m 程度下げる)に降ろして VR HMD の自然な視線レンジに収める。両パネルとも EntryArea 配下の World Space Canvas + Visual 構成、Z-Fighting マージン 0.05 は維持([ui-pitfalls.md §1](./ui-pitfalls.md#1-world-space-canvas-と背景-mesh-の-z-fighting))
+- [ ] **(機能改修反映確認) Cart Seat 着座位置 + ResultDisplay 永続 + 賞品エリア戻り** — `feat(phase8)` コミットの動作確認、Build & Upload して Quest 実機で:着座姿勢が「埋まる」見た目になっているか、Race 終了後 ResultDisplay が次の Start 押下まで残るか、StartButton 押下時に賞品エリアの参加者が DefaultSpawn に戻るか
+
 ### Phase 8 調整候補値の叩き台 (2026-05-28、Phase 7 着手前事前準備)
 
 現行値は [phase4-effect-prefab-checklist.md](./phase4-effect-prefab-checklist.md) 参照。
