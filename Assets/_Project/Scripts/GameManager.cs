@@ -34,6 +34,8 @@ public class GameManager : UdonSharpBehaviour
     public ResultDisplayUI resultDisplayUI;
     [Tooltip("STATE_RUNNING 遷移時、賞品エリアにいる LocalPlayer をここへ強制テレポート(Phase 8 着座位置/戻り改修)。通常は DefaultSpawn Transform を割当")]
     public Transform defaultSpawn;
+    [Tooltip("操作パネル群(各 Cart 前 + 中央の START/MODE をまとめた親)。RUNNING 中のみ非表示、IDLE/RESULT_DISPLAY で表示(Phase 8 着座者操作対応)")]
+    public GameObject[] controlPanels;
 
     [Header("Debug / Reproducibility")]
     [Tooltip("ON のとき debugSeed をそのまま使う(再現テスト用、本番は OFF)")]
@@ -51,6 +53,8 @@ public class GameManager : UdonSharpBehaviour
     [UdonSynced] public bool simultaneousFinale = true;
     [Tooltip("A モード時のカウントダウン秒数")]
     public float finaleCountdownSeconds = 3.0f;
+    [Tooltip("結果表示してから自動で卓をリセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へテレポート)するまでの秒数。結果 UI 自体は隠さず次の START まで残す(Phase 8 Option B)")]
+    public float resultHoldSeconds = 10.0f;
 
     [UdonSynced] public int seed;
     [UdonSynced] public int gameState;
@@ -129,6 +133,18 @@ public class GameManager : UdonSharpBehaviour
         if (_appliedState == gameState) return;
         _appliedState = gameState;
 
+        // 操作パネル(各 Cart 前 + 中央の START / MODE)は RUNNING 中のみ隠す。
+        // IDLE / RESULT_DISPLAY では表示し、着座者(Master)が目の前で操作できる(Phase 8)。
+        // START 押下 → RUNNING で全消え、結果(RESULT_DISPLAY)で再表示 → 次レース受付。
+        bool showControlPanels = (gameState != STATE_RUNNING);
+        if (controlPanels != null)
+        {
+            for (int i = 0; i < controlPanels.Length; i++)
+            {
+                if (controlPanels[i] != null) controlPanels[i].SetActive(showControlPanels);
+            }
+        }
+
         if (gameState == STATE_RUNNING)
         {
             // Phase 8 改修: ResultDisplay 永続表示を解除
@@ -138,12 +154,7 @@ public class GameManager : UdonSharpBehaviour
             // DefaultSpawn に強制テレポート。各クライアントが自分自身を判定・移動するため
             // VRC の TeleportTo Local 制約を回避できる。観戦エリア(MainFloor 上)の
             // プレイヤーには影響しない。
-            var localPlayer = Networking.LocalPlayer;
-            if (localPlayer != null && defaultSpawn != null
-                && localPlayer.GetPosition().z < PRIZE_AREA_Z_THRESHOLD)
-            {
-                localPlayer.TeleportTo(defaultSpawn.position, defaultSpawn.rotation);
-            }
+            _TeleportLocalToSpawnIfInPrize();
 
             if (generator != null) generator.Rebuild(seed);
 
@@ -204,7 +215,10 @@ public class GameManager : UdonSharpBehaviour
                     if (countdownUIs[i] != null) countdownUIs[i]._CancelCountdown();
                 }
             }
-            if (resultDisplayUI != null) resultDisplayUI._Hide();
+            // Phase 8 Option B: 結果 UI はここで隠さない(次レース開始 = RUNNING で隠す)。
+            // 結果を見せたまま卓だけリセットする要望に対応。
+            // 賞品エリアに残っている LocalPlayer を起点へ戻す(symptom 1: ゴール後の自動リスポーン)。
+            _TeleportLocalToSpawnIfInPrize();
             _goaledCount = 0;
             _finaleArmed = false;
             Debug.Log("[GameManager] state=Idle");
@@ -252,16 +266,23 @@ public class GameManager : UdonSharpBehaviour
         int kind = (_effectKinds != null && goalLane >= 0 && goalLane < _effectKinds.Length)
                    ? _effectKinds[goalLane] : 0;
 
-        // B モード: 個別到達時に即発火(空席は演出しない、発火位置は終点 Prize)
-        if (!simultaneousFinale && laneOccupied)
+        bool prizeValid = (prizeAreas != null && goalLane >= 0 && goalLane < prizeAreas.Length
+                           && prizeAreas[goalLane] != null);
+
+        // 壁の色は到達時に即染色(A/B 両モード共通、2026-05-29)。空席カートは染めない。
+        // 演出(爆発/紙吹雪)の発火タイミングはモード別(下)のまま:
+        //   B=個別到達時に即発火 / A=全員ゴール後の _FireFinale で一斉発火。
+        // A モードの _FireFinale も _SetWallColor を呼ぶが、到達時に染め済みのため冪等
+        // (Late Joiner が到達検知を取りこぼした場合の保険として残置)。
+        if (laneOccupied && prizeValid)
         {
-            if (prizeAreas != null && goalLane >= 0 && goalLane < prizeAreas.Length
-                && prizeAreas[goalLane] != null)
-            {
-                // ゴール到達カートの色で壁を染める(Phase 6 追加)
-                prizeAreas[goalLane]._SetWallColor(carts[startLane].GetCartColor());
-                prizeAreas[goalLane].PlayEffect(kind, true);
-            }
+            prizeAreas[goalLane]._SetWallColor(carts[startLane].GetCartColor());
+        }
+
+        // B モード: 個別到達時に演出も即発火(発火位置は終点 Prize)
+        if (!simultaneousFinale && laneOccupied && prizeValid)
+        {
+            prizeAreas[goalLane].PlayEffect(kind, true);
         }
 
         Debug.Log("[GameManager] CartGoaled start=" + startLane + " goal=" + goalLane
@@ -335,11 +356,24 @@ public class GameManager : UdonSharpBehaviour
         SendCustomEventDelayedSeconds(nameof(_EnterResultDisplay), POST_FINALE_DELAY);
     }
 
+    // 賞品エリア(GoalBarrier より奥 = z < PRIZE_AREA_Z_THRESHOLD)に居る LocalPlayer を
+    // defaultSpawn へ戻す。各クライアントが自分自身を判定・移動(VRC TeleportTo Local 制約回避)。
+    // 観戦エリア(MainFloor 上)のプレイヤーには影響しない。RUNNING 開始時 / IDLE リセット時に使用。
+    private void _TeleportLocalToSpawnIfInPrize()
+    {
+        var localPlayer = Networking.LocalPlayer;
+        if (localPlayer != null && defaultSpawn != null
+            && localPlayer.GetPosition().z < PRIZE_AREA_Z_THRESHOLD)
+        {
+            localPlayer.TeleportTo(defaultSpawn.position, defaultSpawn.rotation);
+        }
+    }
+
     // ResultDisplay 遷移は Master が主導(gameState 同期のため)。
     // Master 以外は OnDeserialization 経由で _ApplyState される。
-    // Phase 8 改修: 自動 Idle 復帰タイマーを廃止し、StartButton 押下まで永続表示。
-    // Idle 復帰相当の処理(participantPlayerIds リセット)は RequestStart 内で
-    // Cart.seatedPlayerId から再構築する経路に統合([_ReturnToIdle] は緊急用に残置)。
+    // Phase 8 Option B: 結果表示後 resultHoldSeconds 秒で _ReturnToIdle を自動予約。
+    // IDLE 遷移で卓をリセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へ)するが、
+    // 結果 UI は IDLE で隠さず次の START(RUNNING)まで残す。
     public void _EnterResultDisplay()
     {
         if (!Networking.IsMaster) return;
@@ -352,6 +386,9 @@ public class GameManager : UdonSharpBehaviour
         gameState = STATE_RESULT_DISPLAY;
         RequestSerialization();
         _ApplyState();
+
+        // 結果を resultHoldSeconds 秒見せた後、自動で卓リセット(→ IDLE)。
+        SendCustomEventDelayedSeconds(nameof(_ReturnToIdle), resultHoldSeconds);
     }
 
     public void _ReturnToIdle()

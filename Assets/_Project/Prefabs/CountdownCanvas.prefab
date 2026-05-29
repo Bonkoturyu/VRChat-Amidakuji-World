@@ -220,7 +220,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!114 &5327237441741761599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -264,6 +264,8 @@ MonoBehaviour:
   displayRoot: {fileID: 2335089242469468145}
   text: {fileID: 23830253091825132}
   isFinaleOnly: 0
+  startupFinishText: GO!
+  finaleFinishText: FINALE!
   postZeroLingerSeconds: 0.5
 --- !u!114 &6756970126795446100
 MonoBehaviour:

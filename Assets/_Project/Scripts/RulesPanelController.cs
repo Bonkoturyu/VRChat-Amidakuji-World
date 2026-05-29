@@ -18,6 +18,8 @@ public class RulesPanelController : UdonSharpBehaviour
     public Renderer[] tabButtonRenderers;       // 4 個、Active/Inactive 視覚切替
 
     [Header("Color Palette (Tab4 用)")]
+    [Tooltip("Tab4 選択時のみ表示するパレット親(8 Swatch + ハイライトをぶら下げる)")]
+    public GameObject colorPaletteContainer;
     [Tooltip("カラーパレットボタンの Renderer 群(ColorPreferenceManager.paletteColors と同数・同順)")]
     public Renderer[] colorPaletteRenderers;
     [Tooltip("選択中の色枠を示す Renderer(任意、null なら未使用)")]
@@ -102,6 +104,8 @@ public class RulesPanelController : UdonSharpBehaviour
     public string tab4LabelEN = "4. Color";
 
     private int _currentTab;
+    private MaterialPropertyBlock _palettePropBlock;
+    private const string COLOR_PROP = "_Color";
 
     void Start()
     {
@@ -173,11 +177,25 @@ public class RulesPanelController : UdonSharpBehaviour
     public void _RefreshColorPalette()
     {
         if (colorManager == null || colorPaletteRenderers == null) return;
-        int sel = colorManager.localColorIndex;
 
-        // パレットボタン自身の色は MaterialPropertyBlock を介さず、シーン側で各 Renderer に
-        // sharedMaterial として色マテリアル(or 同じシェーダで _Color 設定済 Material)を割り当てる前提。
-        // ここでは「選択中ハイライト」のみ更新する。
+        // Tab4 選択時のみパレットを表示。他タブでは親ごと非表示にし、塗り直しもスキップ。
+        bool paletteVisible = (_currentTab == 3);
+        if (colorPaletteContainer != null) colorPaletteContainer.SetActive(paletteVisible);
+        if (!paletteVisible) return;
+
+        // 各 Swatch の色は MaterialPropertyBlock で塗る(マテリアル追加ゼロ・Static Batching 両立、
+        // Cart / PrizeArea と同方式)。共通マテリアル 1 個を 8 Swatch で共有する前提。
+        if (_palettePropBlock == null) _palettePropBlock = new MaterialPropertyBlock();
+        for (int i = 0; i < colorPaletteRenderers.Length; i++)
+        {
+            if (colorPaletteRenderers[i] == null) continue;
+            colorPaletteRenderers[i].GetPropertyBlock(_palettePropBlock);
+            _palettePropBlock.SetColor(COLOR_PROP, colorManager.GetPaletteColor(i));
+            colorPaletteRenderers[i].SetPropertyBlock(_palettePropBlock);
+        }
+
+        // 選択中ハイライトを選択 Swatch の位置へ移動
+        int sel = colorManager.localColorIndex;
         if (colorPaletteSelectionHighlight != null && sel >= 0
             && sel < colorPaletteRenderers.Length
             && colorPaletteRenderers[sel] != null)

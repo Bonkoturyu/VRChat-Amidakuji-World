@@ -27,6 +27,7 @@
 
 - **多言語対応 (EN/JP 切替)** — Phase 6 (`2f3e3f3`) で `LocalizationManager` + `LangToggleButton` を実装。RulesPanel と ResultDisplay の両 UI で JP/EN を動的切替、現状は Local 状態(永続化なし)。当初アイデアプール掲載だったが、RulesPanel Rev.4 制作タイミングで実装コストが小さく合流。
 - **カート個人カラー機能** — Phase 6 (`2f3e3f3`) で `ColorPreferenceManager` + `ColorPaletteButton` を実装。MD500 系 8 色パレットを Player Persistence で永続化、`OnPlayerRestored` 初回は `playerId % 8` の決定論既定色。着座中 Cart に `colorIndex` を同期伝播、ゴール時は `PrizeArea._SetWallColor` で壁色も染色([ADR-0012](./docs/adr/0012-goal-effect-randomized.md) の Cart カラーバリエーション拡張枠)。
+  - **⚠ 色選択 UI(`ColorPaletteButton`)のシーン配置が欠落していた**(2026-05-29 発見)。Phase 6 ではスクリプトのみ実装され、Tab4 にパレットが配置されておらず、プレイヤーは `playerId % 8` の既定色に固定で**任意選択ができなかった**。Phase 8 で Tab4 に Swatch×8 を配置して機能を完成させる(手順 [docs/phase8-color-palette-checklist.md](./docs/phase8-color-palette-checklist.md)、`RulesPanelController._RefreshColorPalette` は MaterialPropertyBlock 方式に改修済)。
 
 ## v1.1 (公開後の最優先課題)
 
@@ -74,7 +75,9 @@
 - **`UdonSynced int[4]` の Late Joiner 受信タイミング**: Phase 6 で複数クライアント実機テスト
 - **ゴール手前バリアの隙間設計**: カートだけが通れて歩行者は通れない物理形状、Phase 4 で実機調整必要
 - **Quest 実機でのパフォーマンス**: Phase 8 で実機 FPS 測定、必要に応じて Tri数・マテリアル数を絞り込み
-- **StartButton Proximity が Cart 着座距離に対し狭すぎる**(Quest 実機判定 2026-05-28 で発見): 現状 `Proximity: 2 m` に対し、Cart_0 (X=-6) / Cart_3 (X=+6) と StartButton (X=0, Z=2) の横距離は 6 m、Cart_1/2 でも 2 m ギリギリ。Master が Cart に着座すると StartButton を押せず、Master 一人プレイのフローが破綻する。最短修正は Inspector で `Proximity: 2 → 8〜10`(`StartButton.cs` の Master 二重ガード済のため観戦者の Use 表示は出るが押下は no-op、許容)。Phase 8 着手時に対応必須(v1.0 公開前ブロッカー)
+- ~~**StartButton Proximity が Cart 着座距離に対し狭すぎる**~~(解決方針確定 2026-05-29): proximity を 2→10 に拡大したが、**着座すると視点が真横までしか回らず StartButton に正対できない**(向きの制約で距離問題ではない)と ClientSim で判明。**操作パネル方式**で根本解決 — 各 Cart 着座者の正面 + 中央に START/MODE パネルを配置(計 5)、`GameManager.controlPanels[]` を gameState 連動表示(RUNNING 非表示 / IDLE・RESULT_DISPLAY 表示)。Master のみ操作可。GameManager 改修済、配置手順 [docs/phase8-control-panel-checklist.md](./docs/phase8-control-panel-checklist.md)。中央 StartButton の proximity 10 は立ち操作用に維持
+- ~~**Phase 8 で RESULT_DISPLAY 永続化に伴い卓リセットが消えた**~~(解決 2026-05-29): 自動 Idle 復帰廃止で `_OnRaceReset`(Cart 起点復帰・着座枠クリア)が走らず、ゴール後にカートが終点に残り・プレイヤーがリスポーンされない回帰。**Option B** で再導入 — `_EnterResultDisplay` が `resultHoldSeconds`(既定 10 秒)後に `_ReturnToIdle` を予約、IDLE 遷移で卓リセット + 賞品エリア滞在者を起点へテレポート(`_TeleportLocalToSpawnIfInPrize`)。**結果 UI とパネルは次の START まで出したまま**。
+  - 残課題(レア): 結果表示中(10 秒)に **Master が退出**すると `_ReturnToIdle` 予約が失われ RESULT_DISPLAY に留まる。Master 移譲先での再予約は未実装。v1.1 で OnOwnershipTransferred 監視を検討
 
 ### 検証済み(以前は不安要素だったもの)
 

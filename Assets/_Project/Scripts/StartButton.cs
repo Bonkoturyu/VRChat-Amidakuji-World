@@ -2,6 +2,7 @@ using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
+using TMPro;
 
 // Phase 5 実装: 参加者数チェック・gameState 連動・Material 切替による視覚フィードバックを追加。
 public class StartButton : UdonSharpBehaviour
@@ -15,6 +16,14 @@ public class StartButton : UdonSharpBehaviour
     public Material materialEnabled;
     [Tooltip("押下不可時の Material(走行中・参加者0)")]
     public Material materialDisabled;
+
+    [Header("Label (任意)")]
+    [Tooltip("ボタン表面の状態表示テキスト(3D TextMeshPro、未設定可)")]
+    public TextMeshPro labelText;
+    [Tooltip("押下可能時の表示")]
+    public string labelEnabled = "START";
+    [Tooltip("押下不可時の表示(参加者0・走行中など)")]
+    public string labelDisabled = "START";
 
     // Material 差し替えを状態変化時のみ実行するためのキャッシュ
     private bool _lastPressable = false;
@@ -65,8 +74,11 @@ public class StartButton : UdonSharpBehaviour
     // buttonRenderer の sharedMaterial を切り替える(material プロパティはインスタンス生成リークのため使用禁止)
     private void _ApplyVisual(bool pressable)
     {
-        if (buttonRenderer == null) return;
-        var mat = pressable ? materialEnabled : materialDisabled;
-        if (mat != null) buttonRenderer.sharedMaterial = mat;
+        if (buttonRenderer != null)
+        {
+            var mat = pressable ? materialEnabled : materialDisabled;
+            if (mat != null) buttonRenderer.sharedMaterial = mat;
+        }
+        if (labelText != null) labelText.text = pressable ? labelEnabled : labelDisabled;
     }
 }
