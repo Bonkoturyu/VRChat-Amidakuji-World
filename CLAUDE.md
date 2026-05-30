@@ -42,7 +42,8 @@ amidakuji-world/
         ├── Prefabs/
         ├── Scripts/     ← UdonSharp スクリプト
         ├── Materials/
-        └── Textures/
+        ├── Textures/
+        └── Audio/       ← BGM/ (Mutant Club) + SE/ (balloon-pop, bomb-sound) — 全て CC0
 ```
 
 ドキュメント間の参照関係:
@@ -54,6 +55,7 @@ amidakuji-world/
 - 「**何が残っているか**」→ `BACKLOG.md`
 - 「**どう運用するか(Git/CI/プラットフォーム)**」→ `docs/dev-workflow.md`
 - 「**どこで踏むか(既知の落とし穴)**」→ `docs/ui-pitfalls.md`
+- 「**どの音源を使うか(出所・ライセンス)**」→ `docs/audio-assets.md`(判断は [ADR-0013](./docs/adr/0013-audio-assets-and-licensing.md))
 
 ## 開発フロー
 

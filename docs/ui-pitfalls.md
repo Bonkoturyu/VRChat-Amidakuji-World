@@ -1,7 +1,7 @@
 # UI 実装の落とし穴
 
-Phase 5〜6 の UI 構築中に遭遇した、再発しやすい落とし穴のメモ。
-症状・原因・修正・検証手順をセットで残し、次に UI 追加するときの確認リストにする。
+Phase 5〜6 の UI 構築中(+ Phase 9 の音声配置)に遭遇した、再発しやすい落とし穴のメモ。
+症状・原因・修正・検証手順をセットで残し、次に UI / 音声を追加するときの確認リストにする。
 
 関連: [docs/architecture.md](./architecture.md) / [docs/scene-structure.md](./scene-structure.md) /
 今回の修正コミット `4216b24`。
@@ -161,6 +161,87 @@ Tab 切替で 1 つの `BodyText` に文字列を差し替える方式(RulesPane
   動的に塗るため(Image は CanvasRenderer で MPB 不可)。
 - 色見本は Cart の `M_LaneColor` と**同じ `VRChat/Mobile/Standard Lite`** を使うと、
   選んだ色とカートの発色が一致する(Unlit にすると Cart とズレるので不可)。
+
+---
+
+## 5. 2D 音源(BGM)は VRCSpatialAudioSource 自動付与で 3D 化される
+
+### 症状(ClientSim と実機で BGM の鳴り方が違う)
+
+Spatial Blend=0(2D)のつもりで置いた BGM が、ClientSim では均一に鳴るのに
+**実 VRChat にアップロードすると場所によって音量が変わる**(GameObject の近くで大きく、
+離れると減衰する)。「近いとデカい/遠いと消える」挙動になり、ClientSim の体感で合わせた
+音量が実機で破綻する。
+
+### 原因(アップロード時の自動付与 + spatialization=ON)
+
+VRChat は**アップロード時、VRCSpatialAudioSource が付いていない AudioSource へ自動で 1 個追加し、
+spatialization=ON の状態にする**。このため Spatial Blend=0 のつもりの 2D 音源が実機では
+3D 点音源化する。ClientSim はこの自動付与を再現しないことが多く、ClientSim では 2D 均一のまま
+鳴るため食い違いが生まれる(※実機挙動は要アップロード確認。VRChat 公式仕様)。
+
+加えて ClientSim には実 VRChat のワールド音量スライダー/ランタイムのゲイン処理が無いため、
+**ClientSim は総じて素直に・大きめに鳴る**。ClientSim の体感だけで最終音量を決めない。
+
+### 修正(2D 音源は手動付与で spatialization OFF)
+
+- BGM 等の 2D 音源の GameObject に **VRC Spatial Audio Source を手動で Add Component し、
+  `Enable Spatialization` を OFF** にする(自動付与に任せると ON にされる)。
+- 3D で鳴らしたい音(ゴールの爆発/紙吹雪 SE)は逆に spatialization ON のままで OK。
+- 最終音量は ClientSim ではなく**実アップロード(Build & Test / Quest 実機)で調整**する。
+  BGM Volume は 0.3〜0.4 程度の控えめからスタート(ゴール SE が埋もれないバランス)。
+
+### 検証手順(2D 音源)
+
+1. BGM GameObject に VRCSpatialAudioSource があり Enable Spatialization=OFF か確認
+2. アップロード後の Build & Test で、ワールド内を移動して BGM 音量が**場所に依らず一定**か確認
+3. ゴール SE と同時に鳴らし、BGM が SE を埋もれさせない音量バランスか確認
+
+### 関連
+
+- 音源の採用・再生方式: [adr/0013-audio-assets-and-licensing.md](./adr/0013-audio-assets-and-licensing.md) §4
+- 資産レジストリ: [audio-assets.md](./audio-assets.md)
+
+---
+
+## 6. VRChat の `TextMeshPro/Distance Field` unsupported shader 警告(無害)
+
+### 症状(消えない shader 警告)
+
+Android(Quest)アップロード時、SDK Builder の Review Any Alerts に:
+
+```text
+World uses unsupported shader 'TextMeshPro/Distance Field'.
+This could cause low performance or future compatibility issues.
+```
+
+が出る。**TMP の Examples & Extras フォルダを削除して再アップロードしても消えない**。タブ切替の
+再検証でも残る。
+
+### 原因(マテリアル不使用でもシェーダーが同梱される)
+
+全 Assets + ProjectSettings をスキャンした結果(2026-05-30):
+
+- desktop シェーダー `TextMeshPro/Distance Field`(`TMP_SDF.shader`、GUID `68e6db2ebdc24f95958faec2be5558d6`)を
+  **参照しているマテリアル・フォントアセットは 0 件**(唯一のヒットは `TMP_SDF.shader.meta` = シェーダー自身の .meta)
+- 実 UI フォント(`LiberationSans SDF` / `Fallback`)は **両方 Mobile 版**(`TMP_SDF-Mobile.shader`、GUID `fe393ace9b354375a9cb14cdbbc28be4`)
+- `m_AlwaysIncludedShaders` は空、`.shadervariants` も無し
+
+→ ワールドのどのマテリアルもこのシェーダーを使っていない。警告は **TextMeshPro パッケージの `TMP_SDF.shader`
+ファイルがプロジェクトに存在しビルドに同梱される**ことを VRChat が検出して出している(マテリアル使用起因ではない)。
+
+### 判定(v1.0 は受容)
+
+- **ブロッカーではない**(アップロードは成功する)
+- **実害ゼロ** — どのマテリアルも使わないので実レンダリングは Mobile シェーダーのみ。desktop シェーダーは
+  描画に使われない死荷重(サイズ僅か)
+- VRChat + TextMeshPro の既知挙動。多くの Quest ワールドが同警告のまま公開している
+- 消す唯一の方法は `TMP_SDF.shader`(+ 他 desktop TMP シェーダー)ファイル自体の削除だが、**TMP の整合性を
+  壊すリスク**があり公開前にやるべきでない → **v1.1 で TMP シェーダー stripping を検討**
+
+### 検証(無害の確認)
+
+- Quest 実機で**ワールドのパフォーマンスランクが Good** なら、この警告は無視して良い証拠
 
 ---
 

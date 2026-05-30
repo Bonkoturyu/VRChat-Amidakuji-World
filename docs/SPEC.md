@@ -1,7 +1,7 @@
 # 仕様書 (v1.0 ロック)
 
-最終更新: 2026-05-19
-Status: **Locked** (v1.0開発期間中はこの仕様で進行。ただし 2026-05-16 にレイアウトを縦置き → 平面水平に変更 → [ADR-0011](./adr/0011-flat-horizontal-layout.md)。2026-05-17 に §4.1 / §4.3 の横線数表記を内部整合化、§5.1 を ADR-0007 改訂に追従。2026-05-18 に §8.3 ゴール演出を新設、§7.3 演出モード切替トグル(Master + Player Persistence)を追加、§12 「カスタム賞品」に注釈追加 → [ADR-0012](./adr/0012-goal-effect-randomized.md)。2026-05-19 に Phase 3 詳細設計確定に伴い §4.1 横線生成アルゴリズムを「3 pair 独立 50% 判定 + 連続禁止タイブレーク」から「重み付き 5 パターン抽選(各 pair 出現確率 30% 均一)」に変更、§9.1 に Phase 別導入注記追加 → [ADR-0002 改訂](./adr/0002-deterministic-rng-seed-sync.md))
+最終更新: 2026-05-30
+Status: **Locked** (v1.0開発期間中はこの仕様で進行。ただし 2026-05-16 にレイアウトを縦置き → 平面水平に変更 → [ADR-0011](./adr/0011-flat-horizontal-layout.md)。2026-05-17 に §4.1 / §4.3 の横線数表記を内部整合化、§5.1 を ADR-0007 改訂に追従。2026-05-18 に §8.3 ゴール演出を新設、§7.3 演出モード切替トグル(Master + Player Persistence)を追加、§12 「カスタム賞品」に注釈追加 → [ADR-0012](./adr/0012-goal-effect-randomized.md)。2026-05-19 に Phase 3 詳細設計確定に伴い §4.1 横線生成アルゴリズムを「3 pair 独立 50% 判定 + 連続禁止タイブレーク」から「重み付き 5 パターン抽選(各 pair 出現確率 30% 均一)」に変更、§9.1 に Phase 別導入注記追加 → [ADR-0002 改訂](./adr/0002-deterministic-rng-seed-sync.md)。2026-05-30 に §8.3 / §12 へ音源・ライセンス参照を追加し BGM を v1.0 に昇格 → [ADR-0013](./adr/0013-audio-assets-and-licensing.md)、§12 から「多言語対応」を除外し JP/EN UI + プレイヤー色選択を v1.0 実装済みとして明記)
 
 ## 1. コンセプト
 
@@ -165,7 +165,7 @@ v1.0では走行キャンセル機能は実装しない。状態遷移の実装�
 
 ### 8.3 ゴール演出
 
-カートが賞品エリアに到達した際、視覚・聴覚演出を発火する。判断根拠と詳細は [ADR-0012](./adr/0012-goal-effect-randomized.md)。
+カートが賞品エリアに到達した際、視覚・聴覚演出を発火する。判断根拠と詳細は [ADR-0012](./adr/0012-goal-effect-randomized.md)。効果音・BGM の採用音源とライセンス(CC0 統一)は [ADR-0013](./adr/0013-audio-assets-and-licensing.md) / [audio-assets.md](./audio-assets.md)。
 
 #### 演出種別
 
@@ -252,11 +252,12 @@ Android向け最適化制約は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) 
 - iOS専用ビルド(v1.1へ)
 - 20人スケール(v1.1へ)
 - ランダムイベント(ボーナス・トラップ等)
-- BGM(簡易効果音のみ実装。完全なBGMはv1.1)
+- 動的BGM切替・ゴールファンファーレ・カウントダウン専用ジングル(v1.1へ。単一ループBGM + ゴール効果音は v1.0 で実装 → [ADR-0013](./adr/0013-audio-assets-and-licensing.md) / [audio-assets.md](./audio-assets.md))
 - カスタム賞品(賞品エリアの **テレポート先・装飾は固定**。ただし爆発・紙吹雪の演出種別が seed 由来でランダム割当される件は §8.3 / [ADR-0012](./adr/0012-goal-effect-randomized.md) として v1.0 範囲)
 - 走行キャンセル機能
-- 多言語対応
 - 観戦カメラ・スクリーン機能(廃止 → [ADR-0009](./adr/0009-follow-alongside-spectator.md))
+
+> **多言語(JP/EN)UI とプレイヤー色選択は v1.0 実装済み**(当初は非対応予定だったが追加実装)。RulesPanel / ResultDisplay の JP/EN 切替は `LocalizationManager`、カート色選択(8 色 + カスタム枠)は `ColorPreferenceManager` / `ColorPaletteButton` が担う。配置と仕様は [scene-structure.md](./scene-structure.md) §UI、色選択は [phase8-color-palette-checklist.md](./phase8-color-palette-checklist.md)。追加言語の拡充は v1.1。
 
 ## 13. v1.0 完了の定義
 

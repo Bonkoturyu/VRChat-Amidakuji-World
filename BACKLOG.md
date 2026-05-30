@@ -17,7 +17,7 @@
 - [x] Phase 3: ランダム生成 + seed同期 (2クライアントで一致確認、2026-05-20 完了、1日前倒し)
 - [x] Phase 4: 4カート同時走行 + 賞品エリアテレポート + ゴール演出(2026-05-21 完了、約3日前倒し。`_ApplyState()` 冪等化で OnDeserialization 高頻度発火問題を解消、演出割当は終点 lane ベースに修正 [ADR-0012 §4](./docs/adr/0012-goal-effect-randomized.md))
 - [x] Phase 5: ゲームフロー UI 完成(2026-05-23、Persistence 復元 V9-V11 は Phase 6 で Private アップロード環境にて検証予定)
-- [ ] Phase 6: Late Joiner / エッジケース対応 (PC)
+- [x] Phase 6: Late Joiner / エッジケース対応 (PC)(2026-05-30 完了。Late Joiner 3状態 / Master 交代(走行中+Idle)/ 全員退出 / 着座中退出 / Player Persistence V9-V11 全 PASS、A=Quest・B=PC 実環境 + Build & Test 併用)
 - [x] Phase 7: Android Platform 切替 + 初期最適化(2026-05-28、Quest 実機 Join + RulesPanel + Cart 着座まで動作確認、Tri 数 Stats と StartButton Proximity は Phase 8 持越し)
 - [ ] Phase 8: Quest 実機テスト + 調整
 - [ ] Phase 9: ライティング・最終最適化(PC + Android)
@@ -42,11 +42,12 @@
 - [ ] **観戦補助機能**
   - 観戦者向け加速ゾーン(誰でも速く走れる場所)
   - 観戦モード: 上空からフリーカメラできるUDONギミック
-- [ ] **BGM / SE の追加**
-  - エントリー中のBGM
-  - カウントダウンSE
+- [ ] **BGM / SE の拡張**(v1.0 で単一ループ BGM + ゴール効果音(当たり/ハズレ)を実装済、[ADR-0013](./docs/adr/0013-audio-assets-and-licensing.md) / [audio-assets.md](./docs/audio-assets.md))
+  - 動的BGM切替(待機中 / レース中 / 結果表示中で曲を変える)
+  - カウントダウン専用ジングル
   - 横線通過時のSE
-  - ゴールファンファーレ
+  - ゴールファンファーレ(当たり時の特別演出)
+  - HoliznaCC0 の別曲で雰囲気バリエーション
 - [ ] **賞品エリアの演出拡張**(v1.0 で爆発・紙吹雪のみ実装済、[ADR-0012](./docs/adr/0012-goal-effect-randomized.md))
   - 演出種別の追加(花火、光柱、紙吹雪の派生など)
   - ゴールごとに異なる固定装飾・ギミック

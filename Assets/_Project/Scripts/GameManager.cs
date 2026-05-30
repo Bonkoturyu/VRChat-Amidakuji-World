@@ -249,6 +249,14 @@ public class GameManager : UdonSharpBehaviour
         Debug.Log("[GameManager] RegisterParticipant lane=" + lane + " pid=" + playerId);
     }
 
+    // 指定 goalLane の演出種別を返す(ResultDisplayUI の当落表記用)。
+    // PrizeArea.KIND_NONE(0) / KIND_EXPLOSION(1) / KIND_CONFETTI(2)。範囲外・未算出は 0(NONE)。
+    public int GetEffectKind(int goalLane)
+    {
+        return (_effectKinds != null && goalLane >= 0 && goalLane < _effectKinds.Length)
+               ? _effectKinds[goalLane] : 0;
+    }
+
     // CartController._OnReachedGoal() から各クライアントが呼ぶ(ネットワークイベントではない)。
     // 各クライアントが独立に Update 内で elapsed >= _totalDuration を検出 → 同タイミング発火。
     //   startLane: Cart の起点 lane(着座者識別=participantPlayerIds 参照用)

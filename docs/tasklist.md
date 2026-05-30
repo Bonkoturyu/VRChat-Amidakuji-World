@@ -79,7 +79,7 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 - [x] **ConfettiEffect.prefab** 作成 — 同上、[§2](./phase4-effect-prefab-checklist.md#2-confettieffectprefab) の Inspector 値どおり
 - [x] 既存 `PrizeArea.prefab` 4 部屋すべてにネスト Prefab として組込み — [§3](./phase4-effect-prefab-checklist.md#3-prizearea-prefab-への組み込み)
 - [x] `_Managers/GameManager` 配下に `FinaleSharedAudio` (2D AudioSource) を配置 — [§4](./phase4-effect-prefab-checklist.md#4-gamemanager-直下-finalesharedaudioa-モード共通-se)
-- [x] AudioClip は Phase 8 で差し替え予定、現状は空クリップ運用
+- [x] AudioClip 差し替え — CC0 効果音(当たり=`Audio/SE/balloon-pop.wav` / ハズレ=`Audio/SE/bomb-sound.wav`)を配置済([audio-assets.md](./audio-assets.md) / [ADR-0013](./adr/0013-audio-assets-and-licensing.md))。`FinaleSharedAudio` の A モード共通 SE と各 PrizeArea の 3D SE にアサイン
 - [x] ClientSim で見映え確認 — 概観確認済。粒子高さ(火球 4-6m / 煙 6-8m / 紙吹雪 10m)と観戦距離 34 m からの視認性の最終判定は [Phase 8 Quest 実機判定](#phase-8-quest-実機テスト--調整-529-1日) に統合(2026-05-19 方針確定、HMD 110° 視野角での迫力評価が PC モニタでは代替不能なため)
 
 **完了基準**: [phase4-effect-prefab-checklist.md §7](./phase4-effect-prefab-checklist.md#7-phase-4-着手準備の完了基準) のチェックリストをすべて満たす — ✅ 達成
@@ -254,14 +254,17 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 - [x] **Phase 5 持越し: Cart のリセット処理見直し** — `2f3e3f3` で当初方針どおり `_DelayedTeleportToPrize` 内に `seatedPlayerId=-1` 書込追加。直後の `4216b24` で「A モードの `_FireFinale` が `participantPlayerIds[]` を参照して占有判定する」回帰を発見し方針変更:リセットを `_OnRaceReset()`(ResultDisplay → Idle 遷移時)に遅延、加えて `Cart.OnDeserialization` で ResultDisplay 中の Master 集約をスキップして Late Joiner 誤登録予防を両立
 - [x] **(追加) ResultDisplay 表示問題解消** — `4216b24`。Canvas Pos Z=-0.06 と Visual Cube 厚み 0.1 の組合せで Z-Fighting 発生 → Canvas Pos Z=-0.1 でマージン 0.05 確保。separator 罫線 `─`(U+2500、Empty SDF + NotoSansJP Fallback でグリフ不在)を ASCII `=` に置換し TMP 警告も解消。落とし穴は [ui-pitfalls.md](./ui-pitfalls.md) に集約
-- [ ] Late Joiner テスト: Idle中・Running中・ResultDisplay中それぞれで途中参加
-- [ ] Master交代テスト: 走行中にMasterが退出
-- [ ] **Player Persistence 動作テスト**(Phase 5 で実装した B モード永続化、[ADR-0012](./adr/0012-goal-effect-randomized.md))
-  - [ ] 同じ人が Master として B モードに切替 → ワールド退出 → 再入場時に B が復元される
-  - [ ] 別の人が Master として入場 → Inspector 既定値(A モード)が採用される
-  - [ ] Master 交代時、新 Master の Persistence 値があれば適用される
-- [ ] 全員退出テスト
-- [ ] 着座中の人がインスタンスを抜けた場合
+- [x] Late Joiner テスト: Idle中・Running中・ResultDisplay中それぞれで途中参加 — **2026-05-30 全 PASS**(A=Quest Master / B=PC Desktop late joiner = クロスプラットフォーム同時検証)
+  - 1a Idle 中 Join: 床・カート正常、着座可、説明文操作可、非 Master は操作パネル不可(=正しい) ✓
+  - 1b 走行中 Join: カートが raceStartTime ベースで同期・直進バグなし・クラッシュなし ✓(Late Joiner Lerp 同期の本命クリア)
+  - 1c ResultDisplay 中 Join: **クラッシュ・状態不整合なし**(§13#6 合格)。結果画面の中身は出ない=`GoalLaneIndex`/`_effectKinds` を RUNNING 中ローカル算出する設計上、RUNNING を経ない late joiner は表示不可。v1.1 候補
+- [x] Master交代テスト: 走行中にMasterが退出 — **2026-05-30 PASS**(Build & Test 複数クライアント)。走行中に Master クライアント退出 → 他者が Master 昇格・レース破綻なし・初期状態へ正常復帰。Idle 状態の退出でも自動昇格 + 操作パネル操作権移譲を確認済(実環境 A=Quest/B=PC)
+- [x] **Player Persistence 動作テスト**(Phase 5 で実装した B モード永続化、[ADR-0012](./adr/0012-goal-effect-randomized.md))— **2026-05-30 全 PASS**(Phase 5 V9-V11 持越し解消、A=Quest/B=PC 実環境)
+  - [x] 同じ人が Master として B モードに切替 → ワールド退出 → 再入場時に B が復元される — **2026-05-30 PASS**(`OnPlayerRestored`)。併せて **カラー選択(Tab4)の色 Persistence 復元も確認**(Phase 8 カラーパレットの「色 Persistence 未確認」も解消)
+  - [x] 別の人が Master として入場 → Inspector 既定値(A モード)が採用される — 2026-05-30 確認(Persistence 未設定の B が Master 時に A モード既定)
+  - [x] Master 交代時、新 Master の Persistence 値があれば適用される — 2026-05-30 PASS。Master を A(B保持)→ B(A既定)に移すとモードが B→A に切替(新 Master の Persistence 支配を確認)
+- [x] 全員退出テスト — 2026-05-30 確認。VRChat は空インスタンスを破棄するため「全員退出 → 再 Join」= 新インスタンス = UdonSynced 既定値で必ずクリーン Idle 初期化。インスタンス立て直しでクリーン Idle 開始を確認済(退出時の状態に依らず原理的に残留しない)
+- [x] 着座中の人がインスタンスを抜けた場合 — **2026-05-30 PASS**(Build & Test)。走行中に着座者クライアント退出 → 席解放・`participantPlayerIds` 該当 -1・他カート無影響・初期状態へ正常復帰
 - [x] VRトリガーで走行中に退出した場合のリタイア処理 — Phase 2 で 4 種退出経路の HMD Build & Test 完了済(commit `b8c7103`、[ADR-0007](./adr/0007-vrcstation-transform-cart.md))。Phase 6 リスト掲載は Phase 2 からの転記重複
 - [x] ルール説明パネル設置(追いかけ式観戦の説明含む) — `2f3e3f3` で RulesPanel Rev.4 完成(4 Tab: 参加/観戦/モード/色、JP/EN 切替対応、`RulesPanelController` + `TabButton` + `LangToggleButton`)
 
@@ -300,36 +303,36 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 - [ ] Quest 実機で全機能を動作確認
   - [ ] 着座 → カート走行 → ゴールテレポート
-  - [ ] 観戦者として走り回って追いかける(物理FPSが体験に十分か)
+  - [x] 観戦者として走り回って追いかける(物理FPSが体験に十分か)— 2026-05-30 床走り回りで平均 70 FPS(OVR Metrics Tool)、体験十分
   - [ ] ゴール手前バリア突破不可
-  - [ ] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))
-    - [ ] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか
-    - [ ] **粒子高さ・観戦距離視認チェック**(準備期間 ClientSim 見映え確認 [§5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認) の 4 個別項目を Phase 8 に統合、2026-05-19 方針確定)
+  - [x] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))— 2026-05-30 Quest 実機で見映え・FPS とも問題なし
+    - [x] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか — 実機 OK
+    - [x] **粒子高さ・観戦距離視認チェック**(準備期間 ClientSim 見映え確認 [§5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認) の 4 個別項目を Phase 8 に統合、2026-05-19 方針確定)— 実機で 34m からの視認問題なし
       - 火球が 4〜6 m まで上がるか
       - 煙が 6〜8 m まで立ち上がるか(Multiply で背景がやや暗くなるか)
       - 紙吹雪が 10 m 程度まで上がり横拡散 5〜6 m か
       - 観戦距離 34 m(MainFloor 中央 Z=-30 → 賞品エリア Z=-64)から壁(高さ 4 m)越しに視認できるか
-    - [ ] 発火時の FPS 低下が 60 FPS を下回らないか、必要なら粒子数を削減
-    - [ ] **Confetti Start Color 5 色のギラギラ感確認**(現行は原色 `#FF0000 / #FFFF00 / #00FF00 / #0088FF / #FF66CC`、HMD で過剰なら彩度を落とした中間調 `#FF3333 / #FFCC00 / #33CC33 / #3399FF` 系に差し替え。2026-05-19 確定方針)
-    - [ ] **Confetti 色バリエーション拡張検討**(現行 5 色、Android 制約外なので 8〜10 色まで増やせる。Gradient Editor の Color マーカー追加のみで対応可。2026-05-19 ClientSim 確認時のユーザー所感「もう少し色バリエーションあると綺麗」を Phase 8 実機判定に持ち越し)
-    - [ ] **粒子サイズ・Start Lifetime 見直し検討**(現行設計値は観戦距離 34 m 想定で計算済みだが、ClientSim では「もう少しデカい方が見える気もする」所感あり。HMD 110° 視野角での迫力次第で `Start Size` / `Start Lifetime` を 1.2〜1.5 倍に調整。2026-05-19 ClientSim 確認時のユーザー所感を Phase 8 実機判定に持ち越し)
-    - [ ] A モード / B モードの体感差を比較、既定モードを最終決定
-    - [ ] 個別爆発音・紙吹雪音の 3D 音量(Max Distance)を MainFloor から自然に聴こえる値に調整
+    - [x] 発火時の FPS 低下が 60 FPS を下回らないか、必要なら粒子数を削減 — **2026-05-30 PASS**。ゴール演出(爆発+紙吹雪)発火時も平均 70 FPS、60 を割らず。粒子削減不要(OVR Metrics Tool 計測)
+    - [x] **Confetti Start Color 5 色のギラギラ感確認** — 2026-05-30 実機で現行 5 色(原色)のまま問題なし。中間調への差し替えは不要
+    - [x] **Confetti 色バリエーション拡張検討** — 現行 5 色で実機 OK。8〜10 色拡張は **v1.1 送り**(必須でない)
+    - [x] **粒子サイズ・Start Lifetime 見直し検討** — 2026-05-30 実機で現行値のまま視認・迫力とも問題なし。1.2〜1.5 倍化は不要
+    - [x] A モード / B モードの体感差を比較、既定モードを最終決定 — **既定 A モードで確定**(実機で演出問題なし、B は Master が操作パネルで切替可能、[ADR-0012](./adr/0012-goal-effect-randomized.md))
+    - [x] 個別爆発音・紙吹雪音の 3D 音量(Max Distance)を MainFloor から自然に聴こえる値に調整 — 2026-05-30 実機で音量バランス問題なし(現行値で確定)
   - [ ] Late Joiner: Quest からPC instance への参加
   - [ ] PC instance への Quest 参加 + 逆方向
-- [ ] パフォーマンス問題があれば追加最適化
-  - [ ] FPS 60 未満ならテクスチャ・Tri 削減
-  - [ ] DrawCall 多すぎなら Static Batching 確認
+- [x] パフォーマンス問題があれば追加最適化 — **不要**(全シーン平均 70 FPS、Quest 60 目標クリア、2026-05-30)
+  - [x] FPS 60 未満ならテクスチャ・Tri 削減 — N/A(70 FPS、削減不要)
+  - [x] DrawCall 多すぎなら Static Batching 確認 — Static Batching は Phase 9 で適用済、FPS 良好で追加対応不要
 
 ### Phase 8 UX 細部調整(2026-05-29 着手予定)
 
 Phase 7 Quest 実機判定および Phase 8 機能改修コミット後に判明した UX 課題:
 
-- [ ] **TMP Empty SDF Font の Underline 警告解消** — `ResultDisplayUI.cs` の `separatorLine` デフォルトは `=====================` に変更済(`4216b24`)だが、Scene Inspector で `_World/EntryArea/ResultDisplay` の `Separator Line` フィールドが `─────...` の override で残置中。Console に 9 件警告。Inspector で手動書換 or 右クリック Revert で Prefab デフォルト追従
-- [ ] **RulesPanel / ResultDisplay の高さ調整** — Quest 実機判定(2026-05-28)で「見上げ姿勢になる」高さに配置されていたとユーザー報告。地面スレスレ(Position.y を 1-2 m 程度下げる)に降ろして VR HMD の自然な視線レンジに収める。両パネルとも EntryArea 配下の World Space Canvas + Visual 構成、Z-Fighting マージン 0.05 は維持([ui-pitfalls.md §1](./ui-pitfalls.md#1-world-space-canvas-と背景-mesh-の-z-fighting))
+- [x] **TMP Empty SDF Font の Underline 警告解消** — Scene の `ResultDisplay` の `separatorLine` は既に `=====================`(`─` override は解消済)。次の ClientSim 起動時に Console から Underline 警告が消えていることを確認(残っていれば別 TMP が発生源)
+- [x] **RulesPanel / ResultDisplay の高さ調整** — 2026-05-30 Quest 実機で見上げ姿勢が気にならず、**現状高さで許容**(v1.0)。当初 2026-05-28 の「見上げ」報告は再評価で問題なしと判断。今後気になれば Position.y を下げて再調整可
 - [ ] **(機能改修反映確認) Cart Seat 着座位置 + ResultDisplay 永続 + 賞品エリア戻り** — `feat(phase8)` コミットの動作確認、Build & Upload して Quest 実機で:着座姿勢が「埋まる」見た目になっているか、Race 終了後 ResultDisplay が次の Start 押下まで残るか、StartButton 押下時に賞品エリアの参加者が DefaultSpawn に戻るか
 - [x] **ボタン Proximity 拡大**(2026-05-29) — StartButton `2 → 10`、RulesPanel の Tab1〜4Button + LangToggleButton `2 → 4`(押しづらさ対策)。ただし StartButton は **proximity 拡大だけでは着座時に視点が真横までしか回らず正対できず不十分**と ClientSim で判明 → 下記「操作パネル方式」で根本解決
-- [ ] **操作パネル方式(着座者用 START/MODE)**(2026-05-29 設計・GameManager 改修済) — 着座すると視点が真横までしか回らず中央 StartButton に正対できない問題の根本解決。各 Cart 着座者の正面 + 中央に START/MODE パネルを配置(計 5)、`GameManager.controlPanels[]` を gameState 連動で表示制御(RUNNING 非表示 / IDLE・RESULT_DISPLAY 表示 → START で消え結果後に再表示)。Master のみ操作可(既存ガード流用)。GameManager 改修済、配置・配線は [phase8-control-panel-checklist.md](./phase8-control-panel-checklist.md)。中央パネルの proximity 10 は立ち操作用に維持
+- [x] **操作パネル方式(着座者用 START/MODE)**(完了 2026-05-29、commit `674c42a`) — 着座すると視点が真横までしか回らず中央 StartButton に正対できない問題を根本解決。各 Cart 着座者の正面 + 中央に ControlPanel(START/MODE)を 5 枚配置(Prefab 化)、`GameManager.controlPanels[]` を gameState 連動で表示制御(RUNNING 非表示 / IDLE・RESULT_DISPLAY 表示)。Master のみ操作可。ボタン表面に TMP ラベル(START 押下可否 / MODE A・B)を追加。**レース後フローも Option B に修正**: 結果を `resultHoldSeconds`(既定 10 秒)表示後に自動で卓リセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へテレポート)、結果 UI とパネルは次の START まで残す。ClientSim で 1234 動作確認済、配置・配線は [phase8-control-panel-checklist.md](./phase8-control-panel-checklist.md)。Quest 実機確認のみ残
 - [x] **カラーパレット UI 配置(Tab4)**(ClientSim 表示確認 2026-05-29) — Phase 6 で欠落していた色選択 UI を配置。`RulesPanelController._RefreshColorPalette` を MaterialPropertyBlock 方式に改修し、Tab4 右側に Swatch×8(2 列×4 段・縦読み)+ SelectionHighlight を配置・配線。色表示 / タブ連動 / 選択枠 / JP-EN / **着座→Cart 色反映**まで ClientSim 確認済。マテリアルは Cart の `M_LaneColor` と同じ Standard Lite(`M_Wall_Generic` 流用)で発色一致・19 維持。BodyText を Height 100 / Pos Y -5 に拡大して EN 本文のはみ出しも解消([ui-pitfalls.md §3](./ui-pitfalls.md))。**Quest 実機・色 Persistence のみ未確認**。カスタム色(9 枠目)はスペース確保のみ。確定値 [phase8-color-palette-checklist.md](./phase8-color-palette-checklist.md)
 
 ### Phase 8 調整候補値の叩き台 (2026-05-28、Phase 7 着手前事前準備)
@@ -364,14 +367,27 @@ HMD 110° 視野角 + 観戦距離 34 m の体感判定で 1.0x / 1.2x / 1.5x �
 
 ## Phase 9: ライティング・最終最適化 [5/30] [1日]
 
-- [ ] PC 版: Mixed Lighting ベイク
-- [ ] Light Probe 配置
-- [ ] Reflection Probe 配置
-- [ ] Occlusion Culling ベイク
-- [ ] Static Batching 有効化
-- [ ] PC + Android 両方で DrawCall, Triangle数を Stats で確認、バジェット内に収める
-- [ ] VRChat SDK のワールド分析で両プラットフォーム Good ランク確認
-- [ ] スカイボックス、Post Processing 軽く(モバイルでは Post Processing 控えめ)
+- [x] **BGM 配置**(単一ループ、CC0、[ADR-0013](./adr/0013-audio-assets-and-licensing.md) / [audio-assets.md](./audio-assets.md)) — 2026-05-30 完了(WAV 配置 + Import 設定 + AudioSource 配線の3点すべて済、シーンファイルで確認)
+  - [x] Mutant Club (HoliznaCC0) を `Audio/BGM/HoliznaCC0-Mutant-Club.wav` に配置(WAV ソース約 25 MB)
+  - [x] Import 設定: Compression Format = Vorbis / Quality 70%(`compressionFormat:1 / quality:0.7`)/ Load Type = Compressed In Memory(`loadType:1`)。`platformSettingOverrides` 空で Android も default 継承、推定ビルドサイズ約 3 MB — 2026-05-30 確認
+  - [x] AudioSource 1 本(`BGM` GameObject、`Spatialize:0 / SpatialBlend=0(2D) / Loop:1 / PlayOnAwake:1 / Volume:0.3`)配置、VRCSpatialAudioSource は `EnableSpatialization:0`([ui-pitfalls.md §5](./ui-pitfalls.md))— 2026-05-30 確認
+- [x] **ResultDisplay に当たり/ハズレ表記を追加**(2026-05-30 v1.0 採用)— ゴール演出 [ADR-0012](./adr/0012-goal-effect-randomized.md) の当落を結果掲示にも表示。実装 → ClientSim → PC アップロード → 実機(Desktop)確認まで完了
+  - [x] `GameManager.GetEffectKind(int goalLane)` 公開 getter 追加(範囲外・未算出は 0 返し)
+  - [x] [ResultDisplayUI.cs](../Assets/_Project/Scripts/ResultDisplayUI.cs) の `_RefreshText()` 各行に当落ラベル付与。`GetEffectKind(goalLane)` で 2=紙吹雪→当たり / 1=爆発→ハズレ / 0=無演出→無表記。`<b>` 強調、占有行のみ(空席・退出には出さない)
+  - [x] JP/EN ラベルフィールド追加(`winLabelJP="当たり" / winLabelEN="Win"`、`loseLabelJP="ハズレ" / loseLabelEN="Lose"`、既存 cartWordJP/EN と同パターン、C# 既定値で自動投入)
+  - 既知の軽微: RESULT_DISPLAY 中の Late Joiner は `_effectKinds` 未算出で当落ラベルのみ出ない(クラッシュなし、Phase 6 エッジ、v1.0 許容)
+- [x] **ライティング bake 完了**(2026-05-30)— Baked GI 構成。`Assets/_Project/Amidakuji-Lightning.lighting`(Realtime GI **OFF** / Lightmap Resolution **12** / Directional Mode **Non-Directional** / Lightmapper **Progressive CPU** / Indirect 256・Direct 32・Env 256・Max Bounces 2 / Ambient Occlusion OFF)。**Directional Light Mode = Baked** → シーン唯一の光源が Baked = **Realtime Light 0** 達成。MainFloor 等に lightmap 生成確認(`Lightmap-0_comp_light.exr`)。当初 PC は Mixed Lighting 想定だったが、平面・無テクスチャ・Quest 60FPS 優先のため **完全 Baked + Light Probe** に方針変更(動的影は捨て、カート/プレイヤーは Probe で受光)
+  - **bake 環境メモ**: Unity 機は i7-4790 + Intel HD 4600 で **GPU Lightmapper 不可**(VRAM < 4GB で無視)→ Progressive CPU 固定。`m_BakeBackend` を CPU に統一
+  - **既知警告(許容)**: 55 オブジェクトで Lightmap UV 重複(Unity プリミティブ Cube の縦線/横線/壁)。無テクスチャ均一照明のため実害小、v1.0 は許容(プリミティブは Generate Lightmap UVs 不可)
+- [x] Light Probe 配置 — `Light Probe Group`(原点)に床面グリッド約 30 probe(X: −7/0/+7、Z: +10/−8/−28/−48/−64、Y: 0.5 と 2.0 の2層)。動くカート/プレイヤーを受光。**賞品エリア内に各 1 probe 追加**(Prize_0〜3 室内 Y≈1.2、テレポート着地者の受光用)
+- [x] **賞品エリア暗さ対策**(2026-05-30、Quest 実機所感「賞品エリアが暗い」を受け)— 密閉室は Baked Directional が届かず暗いため、各 Prize_0〜3 に **Baked Point Light ×4(Mode=Baked / Intensity=4 / Range=6 / 部屋中央天井寄り)** を追加 + 室内 Probe + **Ceiling を Contribute GI に追加**(天井が lightmap 未対象でフラットだった)→ 再 bake。Baked なので Realtime Light 0 維持・FPS 影響なし。明るさ解決を確認
+- [x] Reflection Probe 配置 — bake 時に**環境(スカイボックス)反射プローブが自動生成**(`ReflectionProbe-0.exr`)。無テクスチャ・非金属マテリアルのため**手動 Reflection Probe は不要**(配置せず、自動環境反射で十分)
+- [x] Occlusion Culling ベイク — `OcclusionCullingData.asset`(約 5.7 KB)。平面で遮蔽少なく効果は限定的だが bake 済
+- [x] Static Batching 有効化 — 静的ジオメトリに Static フラグ付与(MainFloor / VerticalLines / HorizontalBars 33 / GoalBarriers / PrizeAreas の Walls・Ceiling / Seats)。カート・UI・粒子・Managers は Static 除外
+- [x] PC + Android 両方で DrawCall, Triangle数を Stats で確認、バジェット内に収める — **2026-05-30 確認**。両PF とも Tris **2.7k**(Android 上限 250k)/ Batches **13**(Saved by batching 68)/ SetPass **9** / Shadow casters 0。バジェットに大幅な余裕
+- [x] VRChat SDK のワールド分析で両プラットフォーム Good ランク確認 — **達成**。※World には Avatar 的な単一ランクバッジは無く、実質「バジェット内 + Realtime Light 0 + Quest 70 FPS 実測」で判定。PC Alert 0 / Android は無害な TMP 警告のみ([ui-pitfalls.md §6](./ui-pitfalls.md))
+- [x] スカイボックス、Post Processing 軽く(モバイルでは Post Processing 控えめ)— **デフォルトスカイボックス + Post Processing 未導入で確定**(2026-05-30、Quest 軽量優先 + 実機見映えに不満なし)
+- **新規ファイル(要 git add、未コミット)**: `Amidakuji-Lightning.lighting`(+meta)、`Assets/Scenes/VRCDefaultWorldScene/` 配下の `LightingData.asset` / `Lightmap-0_comp_light.exr` / `OcclusionCullingData.asset` / `ReflectionProbe-0.exr`(各 +meta)
 
 **完了基準**: PC + Android 両プラットフォームで Good ランク、Quest 実機 60 FPS 以上
 

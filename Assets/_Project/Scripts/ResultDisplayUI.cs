@@ -39,6 +39,12 @@ public class ResultDisplayUI : UdonSharpBehaviour
     public string cartWordEN = "Cart";
     public string goalWordJP = "ゴール";
     public string goalWordEN = "Goal";
+    [Tooltip("当たり(紙吹雪=KIND_CONFETTI)ラベル")]
+    public string winLabelJP = "当たり";
+    public string winLabelEN = "Win";
+    [Tooltip("ハズレ(爆発=KIND_EXPLOSION)ラベル")]
+    public string loseLabelJP = "ハズレ";
+    public string loseLabelEN = "Lose";
 
     [Header("Inactive Color")]
     [Tooltip("空席・退出行の色(リッチテキスト #RRGGBB)")]
@@ -124,9 +130,19 @@ public class ResultDisplayUI : UdonSharpBehaviour
                 hex = inactiveHex;
             }
 
+            // 当落ラベル(占有行のみ、空席・退出には出さない、ADR-0012)。
+            // GetEffectKind: 2=紙吹雪→当たり / 1=爆発→ハズレ / 0=無演出→無表記
+            string resultLabel = "";
+            if (pid != -1 && !isRetired)
+            {
+                int kind = gameManager.GetEffectKind(goalLane);
+                if (kind == 2)      resultLabel = "   <b>" + (en ? winLabelEN : winLabelJP) + "</b>";
+                else if (kind == 1) resultLabel = "   <b>" + (en ? loseLabelEN : loseLabelJP) + "</b>";
+            }
+
             output += "<color=#" + hex + ">"
                    + cartWord + " " + cartNumber + " → " + goalWord + " " + goalNumber
-                   + "   " + name
+                   + "   " + name + resultLabel
                    + "</color>\n";
         }
         text.text = output;
