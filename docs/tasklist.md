@@ -301,10 +301,10 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
 
 ## Phase 8: Quest 実機テスト + 調整 [5/29] [1日]
 
-- [ ] Quest 実機で全機能を動作確認
-  - [ ] 着座 → カート走行 → ゴールテレポート
+- [x] Quest 実機で全機能を動作確認 — **2026-05-30 Phase 10 通しテスト(PC+Quest 混在)で A〜F 全 PASS**
+  - [x] 着座 → カート走行 → ゴールテレポート — 通しテストで基本ループ問題なし(着座姿勢含む)
   - [x] 観戦者として走り回って追いかける(物理FPSが体験に十分か)— 2026-05-30 床走り回りで平均 70 FPS(OVR Metrics Tool)、体験十分
-  - [ ] ゴール手前バリア突破不可
+  - [x] ゴール手前バリア突破不可 — 通しテストで非参加者の侵入不可を確認
   - [x] **ゴール演出(爆発・紙吹雪)の見映えと FPS 影響を実機確認**([ADR-0012](./adr/0012-goal-effect-randomized.md))— 2026-05-30 Quest 実機で見映え・FPS とも問題なし
     - [x] 観戦者位置(MainFloor 中央)から演出が視認できる派手さか — 実機 OK
     - [x] **粒子高さ・観戦距離視認チェック**(準備期間 ClientSim 見映え確認 [§5](./phase4-effect-prefab-checklist.md#5-clientsim-での見映え確認) の 4 個別項目を Phase 8 に統合、2026-05-19 方針確定)— 実機で 34m からの視認問題なし
@@ -318,8 +318,8 @@ Phase 4 で配線するため、演出 Prefab 本体を先行制作。判断根�
     - [x] **粒子サイズ・Start Lifetime 見直し検討** — 2026-05-30 実機で現行値のまま視認・迫力とも問題なし。1.2〜1.5 倍化は不要
     - [x] A モード / B モードの体感差を比較、既定モードを最終決定 — **既定 A モードで確定**(実機で演出問題なし、B は Master が操作パネルで切替可能、[ADR-0012](./adr/0012-goal-effect-randomized.md))
     - [x] 個別爆発音・紙吹雪音の 3D 音量(Max Distance)を MainFloor から自然に聴こえる値に調整 — 2026-05-30 実機で音量バランス問題なし(現行値で確定)
-  - [ ] Late Joiner: Quest からPC instance への参加
-  - [ ] PC instance への Quest 参加 + 逆方向
+  - [x] Late Joiner: Quest からPC instance への参加 — 2026-05-30 確認(PC ホストに Quest 参加で同期問題なし)
+  - [x] PC instance への Quest 参加 + 逆方向 — 双方向確認済(A=Quest Master+PC 参加 / PC ホスト+Quest 参加 とも同期一致)
 - [x] パフォーマンス問題があれば追加最適化 — **不要**(全シーン平均 70 FPS、Quest 60 目標クリア、2026-05-30)
   - [x] FPS 60 未満ならテクスチャ・Tri 削減 — N/A(70 FPS、削減不要)
   - [x] DrawCall 多すぎなら Static Batching 確認 — Static Batching は Phase 9 で適用済、FPS 良好で追加対応不要
@@ -330,9 +330,9 @@ Phase 7 Quest 実機判定および Phase 8 機能改修コミット後に判明
 
 - [x] **TMP Empty SDF Font の Underline 警告解消** — Scene の `ResultDisplay` の `separatorLine` は既に `=====================`(`─` override は解消済)。次の ClientSim 起動時に Console から Underline 警告が消えていることを確認(残っていれば別 TMP が発生源)
 - [x] **RulesPanel / ResultDisplay の高さ調整** — 2026-05-30 Quest 実機で見上げ姿勢が気にならず、**現状高さで許容**(v1.0)。当初 2026-05-28 の「見上げ」報告は再評価で問題なしと判断。今後気になれば Position.y を下げて再調整可
-- [ ] **(機能改修反映確認) Cart Seat 着座位置 + ResultDisplay 永続 + 賞品エリア戻り** — `feat(phase8)` コミットの動作確認、Build & Upload して Quest 実機で:着座姿勢が「埋まる」見た目になっているか、Race 終了後 ResultDisplay が次の Start 押下まで残るか、StartButton 押下時に賞品エリアの参加者が DefaultSpawn に戻るか
+- [x] **(機能改修反映確認) Cart Seat 着座位置 + ResultDisplay 永続 + 賞品エリア戻り** — 2026-05-30 通しテストで確認。着座姿勢 OK / 結果 UI 掲示板は次の START まで残る / 賞品エリア滞在者は **resultHoldSeconds(10秒)後の自動 IDLE 遷移**で起点復帰(A/B 共通、START 押下トリガーではない点に注意)
 - [x] **ボタン Proximity 拡大**(2026-05-29) — StartButton `2 → 10`、RulesPanel の Tab1〜4Button + LangToggleButton `2 → 4`(押しづらさ対策)。ただし StartButton は **proximity 拡大だけでは着座時に視点が真横までしか回らず正対できず不十分**と ClientSim で判明 → 下記「操作パネル方式」で根本解決
-- [x] **操作パネル方式(着座者用 START/MODE)**(完了 2026-05-29、commit `674c42a`) — 着座すると視点が真横までしか回らず中央 StartButton に正対できない問題を根本解決。各 Cart 着座者の正面 + 中央に ControlPanel(START/MODE)を 5 枚配置(Prefab 化)、`GameManager.controlPanels[]` を gameState 連動で表示制御(RUNNING 非表示 / IDLE・RESULT_DISPLAY 表示)。Master のみ操作可。ボタン表面に TMP ラベル(START 押下可否 / MODE A・B)を追加。**レース後フローも Option B に修正**: 結果を `resultHoldSeconds`(既定 10 秒)表示後に自動で卓リセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へテレポート)、結果 UI とパネルは次の START まで残す。ClientSim で 1234 動作確認済、配置・配線は [phase8-control-panel-checklist.md](./phase8-control-panel-checklist.md)。Quest 実機確認のみ残
+- [x] **操作パネル方式(着座者用 START/MODE)**(完了 2026-05-29、commit `674c42a`) — 着座すると視点が真横までしか回らず中央 StartButton に正対できない問題を根本解決。各 Cart 着座者の正面 + 中央に ControlPanel(START/MODE)を 5 枚配置(Prefab 化)、`GameManager.controlPanels[]` を gameState 連動で表示制御(RUNNING 非表示 / IDLE・RESULT_DISPLAY 表示)。Master のみ操作可。ボタン表面に TMP ラベル(START 押下可否 / MODE A・B)を追加。**レース後フローも Option B に修正**: 結果を `resultHoldSeconds`(既定 10 秒)表示後に自動で卓リセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へテレポート)、結果 UI とパネルは次の START まで残す。ClientSim で 1234 動作確認済、配置・配線は [phase8-control-panel-checklist.md](./phase8-control-panel-checklist.md)。**Quest 実機確認も完了(2026-05-30 通しテスト)**。※実機所感「操作パネルがやや高い位置かも」=軽微、v1.0 は放置・後日 Position.y 微調整候補
 - [x] **カラーパレット UI 配置(Tab4)**(ClientSim 表示確認 2026-05-29) — Phase 6 で欠落していた色選択 UI を配置。`RulesPanelController._RefreshColorPalette` を MaterialPropertyBlock 方式に改修し、Tab4 右側に Swatch×8(2 列×4 段・縦読み)+ SelectionHighlight を配置・配線。色表示 / タブ連動 / 選択枠 / JP-EN / **着座→Cart 色反映**まで ClientSim 確認済。マテリアルは Cart の `M_LaneColor` と同じ Standard Lite(`M_Wall_Generic` 流用)で発色一致・19 維持。BodyText を Height 100 / Pos Y -5 に拡大して EN 本文のはみ出しも解消([ui-pitfalls.md §3](./ui-pitfalls.md))。**Quest 実機・色 Persistence のみ未確認**。カスタム色(9 枠目)はスペース確保のみ。確定値 [phase8-color-palette-checklist.md](./phase8-color-palette-checklist.md)
 
 ### Phase 8 調整候補値の叩き台 (2026-05-28、Phase 7 着手前事前準備)
@@ -393,11 +393,12 @@ HMD 110° 視野角 + 観戦距離 34 m の体感判定で 1.0x / 1.2x / 1.5x �
 
 ## Phase 10: 最終テスト & 公開 [5/31]
 
-- [ ] 多人数 (可能なら4人) で通しテスト(PC + Quest 混在)
-- [ ] ルール説明パネル最終チェック
-- [ ] ワールド名・サムネイル・説明文設定([BACKLOG.md §ワールドメタデータ](../BACKLOG.md#ワールドメタデータv10-暫定確定--2026-05-21) の暫定確定値を最終調整)
-- [ ] PC版 Private アップロード
-- [ ] Android版 Private アップロード(同じ Blueprint ID)
+- [x] 多人数 (可能なら4人) で通しテスト(PC + Quest 混在)— **2026-05-30 PASS**(2アカウント A=Quest/B=PC、観点 A〜F 全 OK:基本ループ/バリア観戦/モード・カラー/クロスプラットフォーム双方向/音/ルール UI)。4人同時は未だが基本フロー網羅
+- [x] ルール説明パネル最終チェック — 通しテスト F で 4タブ・JP/EN 切替の崩れなしを確認
+- [x] ワールド名・サムネイル・説明文設定 — 2026-05-30 SDK 投入済。名前 `巨大あみだくじ / Ghost-Leg Express`、説明は短縮版(長文版は VRChat 説明欄の文字数上限で保存不可だったため圧縮)、タグ5(`amidakuji/ghostleg/game/party/quest`)。サムネは現状可([BACKLOG.md §ワールドメタデータ](../BACKLOG.md#ワールドメタデータv10-暫定確定--2026-05-21))
+- [x] PC版 Private アップロード — 2026-05-30 賞品エリア修正込みの最新版アップ済(通しテストで修正不要のため最終版)
+- [x] Android版 Private アップロード(同じ Blueprint ID)— 2026-05-30 同上、同一 Blueprint で最新版アップ済
+- [x] **本番 seed ランダム化(リリース必須)** — GameManager の `useDebugSeed` を OFF に(Phase 3-4 のテスト用 `useDebugSeed=true`/`debugSeed=12345` が残っていた)。これで `seed = DateTime.Now.Ticks` で毎回ランダム生成。OFF 化後に両PF 再アップロード済(2026-05-30)。※これが ON のままだと毎回同じあみだくじになる致命的設定だった
 - [ ] 友人にDM、Private インスタンスで動作確認
 - [ ] **Community Labs 公開ボタン押下** 🎉
 - [ ] v1.0 完了タグを git に打つ (`v1.0.0`)

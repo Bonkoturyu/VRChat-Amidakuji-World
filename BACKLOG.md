@@ -19,7 +19,7 @@
 - [x] Phase 5: ゲームフロー UI 完成(2026-05-23、Persistence 復元 V9-V11 は Phase 6 で Private アップロード環境にて検証予定)
 - [x] Phase 6: Late Joiner / エッジケース対応 (PC)(2026-05-30 完了。Late Joiner 3状態 / Master 交代(走行中+Idle)/ 全員退出 / 着座中退出 / Player Persistence V9-V11 全 PASS、A=Quest・B=PC 実環境 + Build & Test 併用)
 - [x] Phase 7: Android Platform 切替 + 初期最適化(2026-05-28、Quest 実機 Join + RulesPanel + Cart 着座まで動作確認、Tri 数 Stats と StartButton Proximity は Phase 8 持越し)
-- [ ] Phase 8: Quest 実機テスト + 調整
+- [x] Phase 8: Quest 実機テスト + 調整(2026-05-30 完了。全シーン 70 FPS / 演出・色・音量・パネル高さ実機 OK / 賞品エリア暗さ対策(Baked Point Light)/ クロスプラットフォーム双方向 / Phase 10 通しテスト A〜F 全 PASS)
 - [ ] Phase 9: ライティング・最終最適化(PC + Android)
 - [ ] Phase 10: Community Labs 公開(PC + Android 両ビルド)
 
@@ -88,44 +88,24 @@
 
 Phase 10 の「ワールド名・サムネイル・説明文設定」で使用する確定値。Phase 10 着手時に最終調整。
 
-- **World 名**: `Ghost-Leg Express — 巨大あみだくじ`(英語タイトル + 日本語サブ併記)
+- **World 名**: `巨大あみだくじ / Ghost-Leg Express`(日本語主 + 英語併記。VRChat の日本語ユーザー比率を踏まえ JP 先頭、2026-05-30 確定)
+- **タグ(5、SDK 上限)**: `amidakuji` `ghostleg` `game` `party` `quest`(`race` は不採用 — 速さを競うゲームではなく運ゲー/パーティ寄りのため誤解回避、2026-05-30 確定)
 - **サムネイル**: 斜め上空俯瞰構図(Z=+20, Y=15, X=0、X 軸 -45° あたりから 4 台のカートが縦線を走行中の画)。現状サムネで暫定 OK、Phase 10 で再撮影判断
-- **ワールド説明文(暫定、JP/EN 並記)** — Phase 6 で UI を JP/EN 多言語化したことに合わせて説明文も両言語化:
+- **ワールド説明文(確定版、JP/EN 並記)** — 2026-05-30 採用。**当初の長文版は VRChat 説明欄の文字数上限で `Saving World Changes` が保存できず**、下記の短縮版で保存成功(VRChat の World 説明欄には文字数上限あり、JP+EN 併記は要圧縮):
 
 ```text
 [ 日本語 ]
-自動巡回カートで体験する、巨大あみだくじワールド。
-
-参加者: スタート位置のカートに座ると、ランダム生成されたあみだくじを自動で巡回。
-ゴール先の賞品エリアでは爆発(ハズレ)か紙吹雪(祝砲)がランダム発火します。
-
-観戦者: あみだくじ構造内を自由に走り回り、カートを追いかけて間近で観戦できます。
-ゴール手前のバリアより先に行けるのは参加者のみ。
-
-最大 4 人参加 + 観戦者多数 OK / Quest 対応 / PC 対応 / UI は日本語/英語切替対応。
-
-スタートボタンはインスタンスオーナーのみ押下可能。
-演出モード(全員ゴール後一斉発火 / 個別到達時即発火)も切り替え可能です。
+自動巡回カートで遊ぶ巨大あみだくじ。カートに座るとランダム生成の道を進み、
+ゴールで紙吹雪(当たり)か爆発(ハズレ)が発火。観戦者は自由に走ってカートを追えます。
+最大4人 + 観戦多数 / PC・Quest 対応 / 日英UI。スタートはインスタンスオーナーのみ。
 
 [ English ]
-Experience a giant ghost-leg lottery (Amidakuji) world by riding auto-traveling carts.
-
-Players: Sit on a cart at the start. You'll traverse a procedurally generated
-lottery path automatically. At the destination prize zone, either an explosion
-(miss) or confetti (celebration) fires at random.
-
-Spectators: Run freely across the lottery floor and chase the carts up close.
-Only participants can pass the goal barrier.
-
-Up to 4 players + many spectators / Quest compatible / PC compatible /
-UI supports JP/EN toggle.
-
-Only the instance owner can press the start button.
-Finale mode (synchronized burst after all carts reach the goal /
-individual burst on each cart's arrival) is switchable.
+A giant Ghost-Leg (Amidakuji) world with auto-riding carts. Sit to ride a random
+path; confetti (win) or explosion (miss) fires at the goal. Spectators chase freely.
+Up to 4 players + spectators / PC & Quest / JP-EN UI. Owner-only start.
 ```
 
-文字数・改行は Phase 10 で VRChat 説明文 UI の実カット位置を見て最終調整。VRChat の説明欄は単一テキスト UI なので JP/EN を 1 枠に並記する想定(`[ 日本語 ]` / `[ English ]` のラベル区切り)。
+VRChat の説明欄は単一テキスト UI なので JP/EN を 1 枠に `[ 日本語 ]` / `[ English ]` ラベルで並記。長文版(演出モード切替の説明等を含む詳細版)は文字数超過で不可だったため、要点に圧縮した上記が最終版。
 
 ### Open Questions
 
@@ -134,6 +114,7 @@ individual burst on each cart's arrival) is switchable.
 
 ## アイデアプール (採否未定)
 
+- **操作パネルの高さ微調整**(2026-05-30 Phase 10 通しテスト所感「操作パネルがやや高い位置かも」。軽微で v1.0 は放置、後日 ControlPanel の Position.y を少し下げる候補)
 - **カート名称をカラー名に変更**(現状「カート1〜4」/ "Cart 1-4"、将来「カート赤 / Cart Red」等にしたい、Rev.4 UI 検討時メモ 2026-05-25)
 - カートのカスタマイズ(色・形を選べる)
 - 観戦者からカートに「応援エモート」を送れる
