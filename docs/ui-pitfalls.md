@@ -245,6 +245,60 @@ This could cause low performance or future compatibility issues.
 
 ---
 
+## 7. UdonSharp の `(int)long` キャストは実行時例外で UdonBehaviour を halt する
+
+### 症状(v1.0 公開後に発覚)
+
+Community Labs 公開後、**START を押下しても何も起きない**(カート発進せず、操作パネルの START が緑のまま)。
+PC・Quest 両方で再現。ClientSim の Console に:
+
+```text
+GameManager.cs(114,67): Udon runtime exception detected!
+An exception occurred during EXTERN to 'SystemConvert.__ToInt32__SystemInt64__SystemInt32'.
+[UdonBehaviour] An exception occurred during Udon execution, this UdonBehaviour will be halted.
+```
+
+### 原因(明示縮小キャストが checked 変換にコンパイルされる)
+
+`seed = (int)System.DateTime.Now.Ticks;` の `(int)long` キャストを、UdonSharp は通常C#の
+**切り捨て(unchecked)ではなく `System.Convert.ToInt32(long)`** にコンパイルする。これは
+**範囲超過で `OverflowException` を投げる checked 変換**。`DateTime.Now.Ticks` は `int.MaxValue` を
+遥かに超えるため毎回例外 → `RequestStart()` がここで中断し、**以後 GameManager の UdonBehaviour が
+完全停止(halt)**。これが二次的に「降りても START が緑のまま(退出時の participant クリアも動かない)」も
+引き起こしていた。
+
+`useDebugSeed = true`(=`seed = debugSeed`、キャスト無し)の間は発症せず、**本番化のため OFF にした
+瞬間にこのパスへ入って発症**した。
+
+### 対策
+
+範囲内に収めてから変換する。下位31ビットマスクなら必ず `[0, int.MaxValue]` に収まり、下位ビットは
+100ns 刻みで変化するため seed として実用上ランダム:
+
+```csharp
+seed = useDebugSeed ? debugSeed : (int)(System.DateTime.Now.Ticks & 0x7FFFFFFFL);
+```
+
+→ 修正コミット `ebe490d`。CLAUDE.md「Udon# 制約のリマインダ」にも横展開済。
+
+### 教訓
+
+- **`(int)long` / `(int)double` 等の明示縮小キャストは Udon では例外源**。大きな値を扱う箇所では
+  マスク・剰余・`Mathf.Clamp` 等で範囲保証してからキャストする。
+- **UdonBehaviour は例外で halt する**(以後その挙動が一切動かなくなる)。「一部機能が無反応 + 関連挙動も
+  芋づる式に死ぬ」症状を見たら、まず ClientSim の Console で runtime exception を疑う。
+
+---
+
+## 8. TMP「Underline is not available in font asset」警告(無害)
+
+ビルド時に `The character used for Underline is not available in font asset [Empty SDF for Default Font]`
+が多数出る。シーン内の TextMeshPro が Underline フォントスタイルを参照しているがデフォルトフォント
+(Empty SDF)に下線グリフが無いため。**黄色 Warning でゲーム動作には無影響**(下線が描画されないだけ)。
+§6 と同類で **v1.0 は受容**。
+
+---
+
 ## 関連リンク
 
 - [docs/architecture.md](./architecture.md) — シーン全体の構成と参照関係
