@@ -36,8 +36,9 @@
 - [x] **シーンの blueprintId 退避** — 全コミットがクリーン。シーンの実 blueprintId は履歴に一度も入っていない(`git log --all -S wrld_` で検証、ヒットは下記 dev-workflow.md の例とスクリプト正規表現のみ)
 - [x] **dev-workflow.md §11 の blueprintId 例を redact** — 実 ID prefix `wrld_13f1b8a9-...` をプレースホルダ `wrld_xxxx...` に変更(2026-05-30)
 - [ ] **(任意・低優先)履歴に残る blueprintId 例の扱い** — 旧版 dev-workflow.md の partial prefix は履歴 `11ea836` に残存。world は Community Labs 公開済で blueprintId は実質非秘匿(公開ワールドの URL/API に出る)・partial のみのため **低リスク。履歴 rewrite はコスト過大で非推奨、受容で可**
-- [ ] **README.md を公開向けに拡充**(任意)— 現状は開発ドキュメント索引として機能十分だが、訪問者向けに ①ワールドのスクショ/サムネ ②Community Labs リンク ③リリース状態(v1.0)④技術スタック を足すと親切
-- [ ] **.gitignore の Unity 標準除外を最終確認** — Public 化直前に `git ls-files` で Library/Temp/Logs/obj 等の生成物が混入していないか確認(現状混入なし)
+- [x] **README.md を公開向けに拡充** — 2026-05-30 完了。タイトルをワールド名化、遊び方 / 公開先(検索誘導、直リンクは blueprintId 含むため任意)/ 技術スタック / リリース状態(v1.0)/ ライセンス(MIT + CC0 音源)を追加。スクショは `docs/images/` 配置のプレースホルダコメントを記載(後で画像を足せる)
+- [x] **.gitignore の Unity 標準除外を最終確認** — 2026-05-30 確認。`git ls-files` で Library/Temp/Logs/obj/.vs/.idea/.csproj/.sln 等の生成物の混入なし(追跡 393 ファイルは全て正当なソース)
+- [ ] **(任意)`.claude/` を公開するか判断** — `.claude/settings.json`(SessionStart フック)と `.claude/agents/sonnet.md`(サブエージェント定義)を追跡中。**秘匿情報なし**(API キー等なし、参照先の `opus_startup_prompt.local.md` は gitignore 済・未追跡)。AI 支援開発の構成を公開して良いかは好み — 隠したいなら `.claude/` を gitignore + `git rm --cached`
 - [x] **第三者素材のライセンス表記** — CC0 音源の出所・ライセンスは [audio-assets.md](./docs/audio-assets.md) + [ADR-0013](./docs/adr/0013-audio-assets-and-licensing.md) に記載済、LICENSE(MIT)あり
 - [x] **個人ファイル(.local 等)の非追跡** — `opus_startup_prompt.local.md` / `.blueprint-id.local` は gitignore 済・未追跡
 - 備考: 全コミットの author email は GitHub 公開アカウントと同一の通常公開情報、対処不要
