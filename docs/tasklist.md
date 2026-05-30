@@ -399,8 +399,8 @@ HMD 110° 視野角 + 観戦距離 34 m の体感判定で 1.0x / 1.2x / 1.5x �
 - [x] PC版 Private アップロード — 2026-05-30 賞品エリア修正込みの最新版アップ済(通しテストで修正不要のため最終版)
 - [x] Android版 Private アップロード(同じ Blueprint ID)— 2026-05-30 同上、同一 Blueprint で最新版アップ済
 - [x] **本番 seed ランダム化(リリース必須)** — GameManager の `useDebugSeed` を OFF に(Phase 3-4 のテスト用 `useDebugSeed=true`/`debugSeed=12345` が残っていた)。これで `seed = DateTime.Now.Ticks` で毎回ランダム生成。OFF 化後に両PF 再アップロード済(2026-05-30)。※これが ON のままだと毎回同じあみだくじになる致命的設定だった
-- [ ] 友人にDM、Private インスタンスで動作確認
-- [ ] **Community Labs 公開ボタン押下** 🎉
-- [ ] v1.0 完了タグを git に打つ (`v1.0.0`)
+- [x] 友人にDM、Private インスタンスで動作確認 — 2アカウント(A=Quest/B=PC)通しテストで代替確認済
+- [x] **Community Labs 公開ボタン押下** 🎉 — **2026-05-30 公開**(目標 5/31 に対し1日前倒し)
+- [x] v1.0 完了タグを git に打つ (`v1.0.0`)— commit `1968f07` に annotated tag、push 済
 
 **完了基準**: 一般の VRChat ユーザー (Community Labs オプトイン者) がワールドを訪問可能(PC + Quest 両対応)

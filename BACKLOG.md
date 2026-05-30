@@ -21,7 +21,7 @@
 - [x] Phase 7: Android Platform 切替 + 初期最適化(2026-05-28、Quest 実機 Join + RulesPanel + Cart 着座まで動作確認、Tri 数 Stats と StartButton Proximity は Phase 8 持越し)
 - [x] Phase 8: Quest 実機テスト + 調整(2026-05-30 完了。全シーン 70 FPS / 演出・色・音量・パネル高さ実機 OK / 賞品エリア暗さ対策(Baked Point Light)/ クロスプラットフォーム双方向 / Phase 10 通しテスト A〜F 全 PASS)
 - [ ] Phase 9: ライティング・最終最適化(PC + Android)
-- [ ] Phase 10: Community Labs 公開(PC + Android 両ビルド)
+- [x] Phase 10: Community Labs 公開(PC + Android 両ビルド)— **2026-05-30 公開達成**(目標 5/31 に対し1日前倒し、tag `v1.0.0`)
 
 ### v1.0 範囲内で追加実装(当初スコープ外、開発中に合流)
 
