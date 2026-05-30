@@ -354,7 +354,7 @@ VRChat には実験的な「iOS で Android ビルドを読む」フォールバ
 
 ## 11. Blueprint ID の保護ワークフロー
 
-VRChat の `blueprintId` (例: `wrld_13f1b8a9-...`) は個人アカウント固有のワールド識別子で、`Build & Publish` 時にシーンファイル内の VRC Scene Descriptor へ自動書き込みされる。リポジトリにコミットすると、
+VRChat の `blueprintId` (例: `wrld_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) は個人アカウント固有のワールド識別子で、`Build & Publish` 時にシーンファイル内の VRC Scene Descriptor へ自動書き込みされる。リポジトリにコミットすると、
 
 - 他者がフォークしても同じ ID は使えない(別アカウントから上書きできない)
 - 個人が運用するワールド ID が公開リポジトリに混入する

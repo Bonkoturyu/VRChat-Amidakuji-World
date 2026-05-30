@@ -29,6 +29,19 @@
 - **カート個人カラー機能** — Phase 6 (`2f3e3f3`) で `ColorPreferenceManager` + `ColorPaletteButton` を実装。MD500 系 8 色パレットを Player Persistence で永続化、`OnPlayerRestored` 初回は `playerId % 8` の決定論既定色。着座中 Cart に `colorIndex` を同期伝播、ゴール時は `PrizeArea._SetWallColor` で壁色も染色([ADR-0012](./docs/adr/0012-goal-effect-randomized.md) の Cart カラーバリエーション拡張枠)。
   - **⚠ 色選択 UI(`ColorPaletteButton`)のシーン配置が欠落していた**(2026-05-29 発見)。Phase 6 ではスクリプトのみ実装され、Tab4 にパレットが配置されておらず、プレイヤーは `playerId % 8` の既定色に固定で**任意選択ができなかった**。Phase 8 で Tab4 に Swatch×8 を配置して機能を完成させる(手順 [docs/phase8-color-palette-checklist.md](./docs/phase8-color-palette-checklist.md)、`RulesPanelController._RefreshColorPalette` は MaterialPropertyBlock 方式に改修済)。
 
+## GitHub リポジトリ Public 化前チェックリスト
+
+リポジトリを Public にする前の確認事項(2026-05-30 監査)。Save→commit→Restore で blueprintId を退避し続けてきた前提での残点検。
+
+- [x] **シーンの blueprintId 退避** — 全コミットがクリーン。シーンの実 blueprintId は履歴に一度も入っていない(`git log --all -S wrld_` で検証、ヒットは下記 dev-workflow.md の例とスクリプト正規表現のみ)
+- [x] **dev-workflow.md §11 の blueprintId 例を redact** — 実 ID prefix `wrld_13f1b8a9-...` をプレースホルダ `wrld_xxxx...` に変更(2026-05-30)
+- [ ] **(任意・低優先)履歴に残る blueprintId 例の扱い** — 旧版 dev-workflow.md の partial prefix は履歴 `11ea836` に残存。world は Community Labs 公開済で blueprintId は実質非秘匿(公開ワールドの URL/API に出る)・partial のみのため **低リスク。履歴 rewrite はコスト過大で非推奨、受容で可**
+- [ ] **README.md を公開向けに拡充**(任意)— 現状は開発ドキュメント索引として機能十分だが、訪問者向けに ①ワールドのスクショ/サムネ ②Community Labs リンク ③リリース状態(v1.0)④技術スタック を足すと親切
+- [ ] **.gitignore の Unity 標準除外を最終確認** — Public 化直前に `git ls-files` で Library/Temp/Logs/obj 等の生成物が混入していないか確認(現状混入なし)
+- [x] **第三者素材のライセンス表記** — CC0 音源の出所・ライセンスは [audio-assets.md](./docs/audio-assets.md) + [ADR-0013](./docs/adr/0013-audio-assets-and-licensing.md) に記載済、LICENSE(MIT)あり
+- [x] **個人ファイル(.local 等)の非追跡** — `opus_startup_prompt.local.md` / `.blueprint-id.local` は gitignore 済・未追跡
+- 備考: 全コミットの author email は GitHub 公開アカウントと同一の通常公開情報、対処不要
+
 ## v1.1 (公開後の最優先課題)
 
 - [ ] **iOS 対応**
