@@ -4,7 +4,12 @@
   "ignores": [
     "Packages/**",
     "Library/**",
-    "node_modules/**"
+    "Temp/**",
+    "Logs/**",
+    "obj/**",
+    "node_modules/**",
+    "Assets/ThirdParty/**",
+    "Assets/Plugins/**"
   ],
   "config": {
     "default": true,

@@ -137,7 +137,8 @@ docs: ADR-0007 にVRトリガー退出の制約を追記
 PR ベース運用(§4)に移行したことで、以下が PR 上で自動的に走る:
 
 - **Gemini Code Assist**: GitHub App を All repositories でインストール済。PR の要約・指摘・修正提案を自動投稿。任意で `.gemini/config.yaml` / `.gemini/styleguide.md` を置くとレビュー言語・粒度・除外を制御できる(未配置でも既定動作)。
-- **Copilot code review**: ルールセット(`copilot_code_review`)で PR 自動レビューを有効化する。**Private 無料ではルールセット作成が不可**(403)で、**Public 化で無料解放**される。Copilot Pro 以上のプランが必要。
+- **Copilot code review**: ルールセット(`copilot_code_review`)で PR 自動レビューを有効化する。**Private 無料ではルールセット作成が不可**(403)で、**Public 化で無料解放**される。
+  - 実際にレビューが走る条件は、ルールセット作成(リポジトリ管理権限)に加えて **PR 作成者が Copilot code review を使えるプラン(Copilot Pro 以上)** であること。単一リポジトリへのルールセット適用に Business/Enterprise 限定の要件は無い(公式ドキュメント)。
   - 設定の実体は [.github/copilot-ruleset.json](../.github/copilot-ruleset.json)(`~DEFAULT_BRANCH` 宛の PR を対象)。
   - **手動**(Public 化後、ローカルの `gh` 認証で可・PAT 不要):
 
