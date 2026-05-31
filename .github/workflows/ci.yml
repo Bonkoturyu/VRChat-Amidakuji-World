@@ -1,0 +1,70 @@
+name: CI
+
+# 品質ゲートとしての CI。VRChat SDK はヘッドレスアップロード非対応のため
+# デプロイ(CD)は対象外で、ここではリポジトリ衛生チェックのみを行う
+# (docs/dev-workflow.md §5.4 / §12 参照)。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: Repo hygiene guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: blueprintId leak guard
+        run: |
+          set -euo pipefail
+          SCENE="Assets/Scenes/VRCDefaultWorldScene.unity"
+          if [ ! -f "$SCENE" ]; then
+            echo "::error::Scene not found: $SCENE"
+            exit 1
+          fi
+          # 退避運用(scripts/Save-BlueprintId.ps1)で blueprintId は常に空のはず。
+          # 実 ID (wrld_...) が混入していたら個人ワールド ID の漏洩。
+          if grep -nE 'blueprintId:[[:space:]]*wrld_' "$SCENE"; then
+            echo "::error file=$SCENE::Real blueprintId leaked. Run scripts/Save-BlueprintId.ps1 before committing."
+            exit 1
+          fi
+          echo "OK: blueprintId is clean (empty)."
+
+      - name: Generated / IDE files guard
+        run: |
+          set -euo pipefail
+          # gitignore 済のはずの生成物・IDE ファイルが追跡対象に紛れ込んでいないか。
+          BAD="$(git ls-files | grep -E '^(Library|Temp|Logs|obj)/|^\.vs/|^\.idea/|\.(csproj|sln)$' || true)"
+          if [ -n "$BAD" ]; then
+            echo "::error::Generated or IDE files are tracked (should be gitignored):"
+            echo "$BAD"
+            exit 1
+          fi
+          echo "OK: no generated/IDE files tracked."
+
+  docs:
+    name: Docs link & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 相対リンク切れ検査。--offline で外部 URL はスキップし、ローカルファイルの
+      # 存在のみを決定論的に検証する(ドキュメント間の参照崩れを検出)。
+      - name: Relative link check (offline)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress --exclude-path Packages "**/*.md"
+          fail: true
+
+      # Markdown スタイル lint。既存ドキュメントの蓄積された軽微な指摘で
+      # PR を止めないよう、当面は advisory(非ブロッキング)。docs が整い次第
+      # continue-on-error を外してゲート化する。
+      - name: Markdown lint (advisory)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          npx --yes markdownlint-cli2 "**/*.md"
