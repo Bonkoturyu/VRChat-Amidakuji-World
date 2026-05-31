@@ -58,6 +58,7 @@ public class StartButton : UdonSharpBehaviour
     }
 
     // 押下可否判定: STATE_IDLE かつ参加者が 1 人以上のときのみ true
+    // (#7/#16: レース開始は IDLE 限定に統一。RESULT_DISPLAY からの直接開始は採らない)
     private bool _IsPressable()
     {
         if (gameManager == null) return false;

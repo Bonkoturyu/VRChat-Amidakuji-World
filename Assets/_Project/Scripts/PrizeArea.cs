@@ -33,11 +33,23 @@ public class PrizeArea : UdonSharpBehaviour
     private MaterialPropertyBlock _propBlock;
     private const string COLOR_PROP = "_Color";
 
+    // #4: GetComponentsInChildren は呼ぶたびに ParticleSystem[] を new する。
+    // 演出発火・リセットのたびのアロケーション(Quest で GC プレッシャ)を避けるため
+    // Start で一度だけ取得してキャッシュし、以降は使い回す。
+    private ParticleSystem[] _explosionSystems;
+    private ParticleSystem[] _confettiSystems;
+
     void Start()
     {
         if (explosionEffect != null) explosionEffect.SetActive(false);
         if (confettiEffect != null) confettiEffect.SetActive(false);
         _propBlock = new MaterialPropertyBlock();
+
+        // true = 非アクティブな子も含めて取得(上で SetActive(false) 済のため必須)
+        if (explosionEffect != null)
+            _explosionSystems = explosionEffect.GetComponentsInChildren<ParticleSystem>(true);
+        if (confettiEffect != null)
+            _confettiSystems = confettiEffect.GetComponentsInChildren<ParticleSystem>(true);
     }
 
     // GameManager から呼ばれる。各クライアントが独立に呼ぶ (seed 由来決定論で発火は同期)。
@@ -49,7 +61,7 @@ public class PrizeArea : UdonSharpBehaviour
             if (explosionEffect != null)
             {
                 explosionEffect.SetActive(true);
-                _PlayParticlesIn(explosionEffect);
+                _PlayParticles(_explosionSystems);
             }
             if (withIndividualSound && explosionAudio != null) explosionAudio.Play();
         }
@@ -58,7 +70,7 @@ public class PrizeArea : UdonSharpBehaviour
             if (confettiEffect != null)
             {
                 confettiEffect.SetActive(true);
-                _PlayParticlesIn(confettiEffect);
+                _PlayParticles(_confettiSystems);
             }
             if (withIndividualSound && confettiAudio != null) confettiAudio.Play();
         }
@@ -69,12 +81,12 @@ public class PrizeArea : UdonSharpBehaviour
     {
         if (explosionEffect != null)
         {
-            _StopParticlesIn(explosionEffect);
+            _StopParticles(_explosionSystems);
             explosionEffect.SetActive(false);
         }
         if (confettiEffect != null)
         {
-            _StopParticlesIn(confettiEffect);
+            _StopParticles(_confettiSystems);
             confettiEffect.SetActive(false);
         }
         _ResetWallColor();
@@ -103,9 +115,9 @@ public class PrizeArea : UdonSharpBehaviour
 
     // ParticleSystem.Main.Play On Awake は OFF 設計。SetActive(true) だけだと
     // 確実に再生されない環境があるため明示的に Play() を呼ぶ。
-    private void _PlayParticlesIn(GameObject root)
+    // #4: 引数は Start でキャッシュした配列(都度 GetComponentsInChildren しない)。
+    private void _PlayParticles(ParticleSystem[] systems)
     {
-        var systems = root.GetComponentsInChildren<ParticleSystem>(true);
         if (systems == null) return;
         for (int i = 0; i < systems.Length; i++)
         {
@@ -113,9 +125,8 @@ public class PrizeArea : UdonSharpBehaviour
         }
     }
 
-    private void _StopParticlesIn(GameObject root)
+    private void _StopParticles(ParticleSystem[] systems)
     {
-        var systems = root.GetComponentsInChildren<ParticleSystem>(true);
         if (systems == null) return;
         for (int i = 0; i < systems.Length; i++)
         {

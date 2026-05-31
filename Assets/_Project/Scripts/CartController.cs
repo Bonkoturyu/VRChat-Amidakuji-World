@@ -95,11 +95,27 @@ public class CartController : UdonSharpBehaviour
     // GameManager._ApplyState() から同フレームで呼ばれる(Rebuild 完了後)。
     public void _OnRaceStarted()
     {
-        if (gameManager == null || generator == null) return;
+        // #14: 参照欠落は「このカートが永久に未ゴール → _goaledCount が揃わず
+        // インスタンス全体が RUNNING で固まるソフトロック」に直結する。黙って早期 return せず
+        // 原因を可視化する(最終保険は GameManager 側の watchdog)。
+        if (gameManager == null || generator == null)
+        {
+            Debug.LogError("[CartController L" + laneIndex + "] _OnRaceStarted: 参照未設定 "
+                           + "(gameManager set=" + (gameManager != null)
+                           + " generator set=" + (generator != null)
+                           + ")。このカートは走行・ゴールせずレースが完了不能になります。");
+            return;
+        }
         ComputePath(gameManager.seed, laneIndex);
-        if (_waypointCount > 0)
+        // _waypointCount==1 だと Update の <2 ガードで永久停止(ソフトロック)になるため >= 2 を要求。
+        if (_waypointCount >= 2)
         {
             transform.position = _waypoints[0];
+        }
+        else
+        {
+            Debug.LogError("[CartController L" + laneIndex + "] _OnRaceStarted: 経路が不十分 "
+                           + "(_waypointCount=" + _waypointCount + ")。このカートはゴールせずレースが完了不能になります。");
         }
         _hasNotifiedGoal = false;
         _isExitingByGoal = false;
@@ -166,7 +182,10 @@ public class CartController : UdonSharpBehaviour
 
         float traveled = (float)elapsed * speed;
 
-        int segIndex = 0;
+        // #8 修正: ループが境界(浮動小数の丸めで traveled が終端を僅かに超える)で一度も
+        // ヒットしないと、旧実装は segIndex=0 のまま先頭区間で誤補間した。初期値を終端区間に
+        // 倒し「見つからない=終端付近」として扱う。通常区間ではループが正しく上書きする。
+        int segIndex = _waypointCount - 2; // _waypointCount >= 2 は上の早期 return で保証済
         for (int i = 1; i < _waypointCount; i++)
         {
             if (_cumulativeDist[i] >= traveled)
@@ -214,13 +233,29 @@ public class CartController : UdonSharpBehaviour
             int dir = generator.HasBarForLane(seg, currentLane);
             if (dir != 0)
             {
+                // #1 フェイルセーフ: SEGMENT_COUNT を Inspector で 11 超に増やすと
+                // MAX_WAYPOINTS(=24)を超過しうる。1 段で 2 waypoint 積むため、
+                // 「2 個 + 終点 1 個」を確保できない時点で打ち切る。これにより
+                // IndexOutOfRange による UdonBehaviour halt(→ #14 のソフトロック)を防ぐ。
+                // SEGMENT_COUNT=11 固定運用では一度も発火しない(挙動不変)。
+                if (n + 3 > MAX_WAYPOINTS)
+                {
+                    Debug.LogError("[CartController L" + laneIndex + "] waypoint overflow: MAX_WAYPOINTS("
+                                   + MAX_WAYPOINTS + ") 超過のため経路を打ち切り。"
+                                   + "SEGMENT_COUNT を増やした場合は MAX_WAYPOINTS も更新が必要。");
+                    break;
+                }
                 float zBar = generator.SegZ(seg);
                 _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, zBar);
                 currentLane += dir;
                 _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, zBar);
             }
         }
-        _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, generator.BOTTOM_Y);
+        // 終点。フェイルセーフで余地を確保しているため通常 n < MAX だが、念のため範囲確認。
+        if (n < MAX_WAYPOINTS)
+        {
+            _waypoints[n++] = new Vector3(generator.LaneX(currentLane), 0f, generator.BOTTOM_Y);
+        }
 
         _waypointCount = n;
         _goalLaneIndex = currentLane;
@@ -233,21 +268,18 @@ public class CartController : UdonSharpBehaviour
         }
         float total = _cumulativeDist[n - 1];
         _totalDuration = (speed > 0.0001f) ? (total / speed) : 0f;
-
-        // Phase 3/4 検証用ログ(Phase 6 で削除)。
-        string log = "[CartController L" + laneIndex + "] n=" + n
-                     + " dist=" + total + " dur=" + _totalDuration + " goal=" + currentLane;
-        for (int i = 0; i < n; i++)
-        {
-            log = log + " WP[" + i + "]=" + _waypoints[i];
-        }
-        Debug.Log(log);
+        // #3: Phase 3/4 検証用の逐次ログ(本来 Phase 6 で削除予定)を撤去。
+        // STATE_RUNNING 遷移毎にカート台数分呼ばれ、最大 24 個の座標を文字列連結して
+        // 約 30 個の string を生成していた(Quest で GC プレッシャ)。
     }
 
     // ADR-0007: VRC_Station と UdonBehaviour 同居構成では Use 表示のため Interact() 実装が必要
     public override void Interact()
     {
         if (station == null) return;
+        // #7/#16: 着座開始は STATE_IDLE 限定。RESULT_DISPLAY からの予約着座→直接 START という
+        // 近道は仕様として採らない(sticky な seatedPlayerId によるゴースト参加者を避ける)。
+        // 結果表示中の卓リセットは RESULT_DISPLAY→IDLE 遷移(_ReturnToIdle)に一本化する。
         if (gameManager != null && gameManager.gameState != GameManager.STATE_IDLE) return;
         var local = Networking.LocalPlayer;
         if (local == null) return;
@@ -260,13 +292,11 @@ public class CartController : UdonSharpBehaviour
 
         if (player.isLocal)
         {
-            // Phase 8 改修: 走行中(STATE_RUNNING)のみ着座ブロック。
-            // STATE_IDLE / STATE_RESULT_DISPLAY 両方で着座を許可し、
-            // ResultDisplay 中の着座は「次レース予約」として扱う。
-            // OnDeserialization は ResultDisplay 中 Master 集約をスキップするが、
-            // 次の RequestStart() が Cart.seatedPlayerId から participantPlayerIds[] を
-            // 再構築するため最終的に整合する。
-            if (gameManager != null && gameManager.gameState == GameManager.STATE_RUNNING)
+            // #7/#16: 着座は STATE_IDLE 限定に統一。IDLE 以外(RUNNING / RESULT_DISPLAY)で
+            // 着座しようとしたら即退出させる。RESULT_DISPLAY 中の卓は「結果を見る凍結状態」で、
+            // リセット(→IDLE)後に着座する設計(予約着座は採らない)。Interact 側でも IDLE 限定
+            // ガードしているが、ここでも弾いて「着座は IDLE のみ」を権威的に担保する。
+            if (gameManager != null && gameManager.gameState != GameManager.STATE_IDLE)
             {
                 if (station != null) station.ExitStation(player);
                 return;
