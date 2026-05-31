@@ -28,6 +28,19 @@ public class AmidakujiGenerator : UdonSharpBehaviour
 
     void Start()
     {
+        // Inspector 設定ミスを早期検知。LANE_COUNT<1 は配列確保で即例外になるためクランプ。
+        if (LANE_COUNT < 1)
+        {
+            Debug.LogError("[AmidakujiGenerator] LANE_COUNT は 1 以上が必要です。1 にクランプします。");
+            LANE_COUNT = 1;
+        }
+        // あみだくじの構造上 LANE_COUNT == LANE_PAIR_COUNT + 1 でなければ横線が正しく引けない。
+        if (LANE_COUNT != LANE_PAIR_COUNT + 1)
+        {
+            Debug.LogError("[AmidakujiGenerator] LANE_COUNT(" + LANE_COUNT + ") != LANE_PAIR_COUNT("
+                           + LANE_PAIR_COUNT + ") + 1 — Inspector 設定を確認してください。");
+        }
+
         int total = LANE_PAIR_COUNT * SEGMENT_COUNT;
         _bars = new bool[total];
 
@@ -42,7 +55,7 @@ public class AmidakujiGenerator : UdonSharpBehaviour
         }
 
         // #17: Rebuild() の横線抽選は 3 ペア(p0/p1/p2)固定実装で LANE_PAIR_COUNT に追従しない。
-        // 3 以外が設定されたら横線生成が破綻するため明示警告する(v1.1 で一般化するまでの安全網)。
+        // 3 以外が設定されたら Rebuild() を早期 return させてクラッシュを防ぐ(v1.1 で一般化予定)。
         if (LANE_PAIR_COUNT != 3)
         {
             Debug.LogError("[AmidakujiGenerator] Rebuild() は LANE_PAIR_COUNT=3 前提の実装です。"
@@ -69,6 +82,8 @@ public class AmidakujiGenerator : UdonSharpBehaviour
     // weights: (0,0,0)=2 / (1,0,0)=2 / (0,1,0)=3 / (0,0,1)=2 / (1,0,1)=1, sum=10
     public void Rebuild(int seed)
     {
+        // LANE_PAIR_COUNT!=3 のとき _bars サイズ不足で IndexOutOfRange になるため実行しない。
+        if (LANE_PAIR_COUNT != 3) return;
         var rng = new System.Random(seed);
         int activeCount = 0;
         for (int seg = 0; seg < SEGMENT_COUNT; seg++)

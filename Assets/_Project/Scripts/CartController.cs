@@ -107,14 +107,15 @@ public class CartController : UdonSharpBehaviour
             return;
         }
         ComputePath(gameManager.seed, laneIndex);
-        if (_waypointCount > 0)
+        // _waypointCount==1 だと Update の <2 ガードで永久停止(ソフトロック)になるため >= 2 を要求。
+        if (_waypointCount >= 2)
         {
             transform.position = _waypoints[0];
         }
         else
         {
-            Debug.LogError("[CartController L" + laneIndex + "] _OnRaceStarted: 経路が空 "
-                           + "(_waypointCount=0)。このカートはゴールせずレースが完了不能になります。");
+            Debug.LogError("[CartController L" + laneIndex + "] _OnRaceStarted: 経路が不十分 "
+                           + "(_waypointCount=" + _waypointCount + ")。このカートはゴールせずレースが完了不能になります。");
         }
         _hasNotifiedGoal = false;
         _isExitingByGoal = false;
