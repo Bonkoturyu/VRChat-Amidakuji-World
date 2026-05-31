@@ -1,0 +1,48 @@
+name: Enable Copilot code review on public
+
+# Private → Public 化した瞬間に 1 回だけ発火する。
+# `on: public` はデフォルトブランチ(main)上のワークフローのみ有効。
+#
+# 必要な準備(一度だけ):
+#   fine-grained PAT を作成し、リポジトリ secret `RULESET_PAT` に登録する。
+#     - Settings → Developer settings → Fine-grained tokens
+#     - Repository access: このリポジトリのみ
+#     - Repository permissions → Administration: Read and write
+#   ※ GITHUB_TOKEN には administration 権限が無く、ルールセットを作成できないため PAT が必須。
+#
+# 手動で作成する場合(Public 化後・PAT 不要、ローカルの gh 認証で可):
+#   gh api -X POST repos/Bonkoturyu/VRChat-Amidakuji-World/rulesets \
+#     --input .github/copilot-ruleset.json
+on: public
+
+permissions:
+  contents: read
+
+jobs:
+  enable-copilot-review:
+    name: Create Copilot code review ruleset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create ruleset (idempotent)
+        env:
+          GH_TOKEN: ${{ secrets.RULESET_PAT }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          NAME="$(jq -r .name .github/copilot-ruleset.json)"
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::secret RULESET_PAT が未設定です。fine-grained PAT (Administration: write) を登録してください。"
+            exit 1
+          fi
+
+          # 同名ルールセットが既にあれば二重作成しない。
+          if gh api "repos/$REPO/rulesets" --jq '.[].name' | grep -qxF "$NAME"; then
+            echo "Ruleset '$NAME' already exists. Skipping."
+            exit 0
+          fi
+
+          gh api -X POST "repos/$REPO/rulesets" --input .github/copilot-ruleset.json
+          echo "Created ruleset '$NAME'."

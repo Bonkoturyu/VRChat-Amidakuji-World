@@ -1,0 +1,22 @@
+{
+  // markdownlint-cli2 設定 (CI: .github/workflows/ci.yml の docs ジョブが参照)。
+  // Unity/VCC 由来の third-party や生成物は lint 対象外にする。
+  "ignores": [
+    "Packages/**",
+    "Library/**",
+    "Temp/**",
+    "Logs/**",
+    "obj/**",
+    "node_modules/**",
+    "Assets/ThirdParty/**",
+    "Assets/Plugins/**"
+  ],
+  "config": {
+    "default": true,
+    "MD013": false,                  // line-length: 日本語長文ドキュメントのため無効
+    "MD033": false,                  // inline HTML: README の <!-- --> コメント等を許可
+    "MD041": false,                  // first-line-heading: コメント始まりの md を許可
+    "MD024": { "siblings_only": true }, // 重複見出し: 兄弟見出しのみ禁止 (ADR で許容)
+    "MD036": false                   // emphasis-as-heading: 日本語の強調表現を許容
+  }
+}

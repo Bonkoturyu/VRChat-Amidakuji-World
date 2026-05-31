@@ -1,7 +1,7 @@
 # Development Workflow
 
-Git運用、GitHub Private Repository、CI、テスト戦略をまとめる。
-v1.0 公開(5/31)までは最小限の運用、公開後に段階的に整備する方針。
+Git運用、GitHub リポジトリ、CI、テスト戦略をまとめる。
+v1.0.0 公開済(2026-05-30)。公開を機に、PR ベース運用 + CI(リポジトリ衛生チェック)+ AI コードレビュー(Gemini / Copilot)を導入した。
 
 ## 1. リポジトリ設計
 
@@ -90,14 +90,14 @@ GitHub Private リポジトリでは LFS のストレージ・帯域に上限あ
 
 ## 4. ブランチング・コミット運用
 
-v1.0 期間は単独開発なので最小構成:
+v1.0 開発期間(〜2026-05-30)は単独開発のため `main` 直コミット運用だった(各 Phase 完了でコミット + `phase-N-done` タグ、公開時に `v1.0.0` タグ)。
 
-- **`main` ブランチで直接開発**(ブランチ運用のオーバーヘッドを避ける)
-- 各 Phase 完了時に必ずコミット
-- Phase 完了タグを推奨: `phase-0-done`, `phase-1-done`, ...
-- v1.0 公開時に `v1.0.0` タグを打つ
+**v1.0.0 公開後は PR ベース運用へ移行する。** AI コードレビュー(Gemini Code Assist / Copilot)と CI はいずれも PR をトリガーに動くため、これが前提になる:
 
-v1.1 以降に複数機能を並行開発する局面が出てきたら `feature/*` ブランチ運用を導入する。
+- 作業は `feature/*` ブランチで行い、`main` への PR を立てる
+- PR で CI(リポジトリ衛生チェック)+ AI レビューが自動で走る(§5)
+- レビュー確認後に `main` へマージ
+- リリース時に `vX.Y.Z` タグを打つ
 
 ### コミットメッセージ規約
 
@@ -121,35 +121,42 @@ docs: ADR-0007 にVRトリガー退出の制約を追記
 
 ## 5. CI 戦略
 
-### 5.1 v1.0 期間 (〜2026-05-31): CI なし
+### 5.1 現行 CI: リポジトリ衛生チェック (実装済)
 
-- 工数を Phase 進行に集中
-- 個人プロジェクトでテストもこれから書くフェーズなので CI 投資は時期尚早
-- Build & Publish は手動で SDK から実行
+[.github/workflows/ci.yml](../.github/workflows/ci.yml) — PR と `main` への push で起動。Unity 不要・軽量で、デプロイ自動化はしない(§5.4)。
 
-### 5.2 v1.1 期間 (2026-06以降): 軽量 CI を導入
+- **guards** ジョブ(ブロッキング):
+  - blueprintId 漏洩ガード: シーンに実 `wrld_*` が混入したら fail(退避運用 §11 の機械的バックストップ)
+  - 生成物 / IDE ファイル混入ガード: `Library/` `Temp/` `Logs/` `obj/` `*.csproj` `*.sln` 等が追跡されていたら fail
+- **docs** ジョブ:
+  - 相対リンク切れ検査(lychee `--offline`、ブロッキング)
+  - markdownlint(当面 advisory。設定は [.markdownlint-cli2.jsonc](../.markdownlint-cli2.jsonc)。docs 整備後にブロッキング化)
 
-GitHub Actions を使った静的チェックのみ。Unity 不要:
+### 5.2 AI コードレビュー (PR トリガー)
 
-```yaml
-# .github/workflows/docs.yml の方針 (実装は v1.1 で)
-on:
-  push: { paths: ["**/*.md", ".github/workflows/docs.yml"] }
-  pull_request: { paths: ["**/*.md"] }
+PR ベース運用(§4)に移行したことで、以下が PR 上で自動的に走る:
 
-jobs:
-  - markdownlint  (markdownlint-cli2)
-  - ADR形式チェック (docs/adr/0XXX-*.md パターン、必須セクションの存在)
-  - リンク切れチェック (lychee or markdown-link-check)
-```
+- **Gemini Code Assist**: GitHub App を All repositories でインストール済。PR の要約・指摘・修正提案を自動投稿。任意で `.gemini/config.yaml` / `.gemini/styleguide.md` を置くとレビュー言語・粒度・除外を制御できる(未配置でも既定動作)。
+- **Copilot code review**: ルールセット(`copilot_code_review`)で PR 自動レビューを有効化する。**Private 無料ではルールセット作成が不可**(403)で、**Public 化で無料解放**される。
+  - 実際にレビューが走る条件は、ルールセット作成(リポジトリ管理権限)に加えて **PR 作成者が Copilot code review を使えるプラン(Copilot Pro 以上)** であること。単一リポジトリへのルールセット適用に Business/Enterprise 限定の要件は無い(公式ドキュメント)。
+  - 設定の実体は [.github/copilot-ruleset.json](../.github/copilot-ruleset.json)(`~DEFAULT_BRANCH` 宛の PR を対象)。
+  - **手動**(Public 化後、ローカルの `gh` 認証で可・PAT 不要):
 
-### 5.3 v1.2 期間: Unity ビルド・テスト CI
+    ```bash
+    gh api -X POST repos/Bonkoturyu/VRChat-Amidakuji-World/rulesets \
+      --input .github/copilot-ruleset.json
+    ```
 
-`game-ci/unity-builder` を使った Unity プロジェクトの compile + test 実行:
+  - **自動**: [.github/workflows/setup-on-public.yml](../.github/workflows/setup-on-public.yml) が `on: public`(Private→Public 化の瞬間)に同 JSON からルールセットを作成。`GITHUB_TOKEN` には administration 権限が無いため、secret `RULESET_PAT`(fine-grained PAT / Administration: write)が必要。
+
+### 5.3 将来: Unity ビルド・テスト CI
+
+`game-ci/unity-test-runner` を使った Unity EditMode テスト(ロジック分離 §6.2 が前提):
 
 - Unity Personal ライセンスを GitHub Secrets に登録
-- Edit Mode Tests を CI で実行
-- Build はあくまで compile 通過確認用(VRChat 向けのアップロードは不可)
+- Edit Mode Tests を CI で実行(`AmidakujiLogic` の決定論性など)
+- Build は compile 通過確認用(VRChat 向けアップロードは不可)
+- 大型ランナー + ライセンス管理のコストがあるため、テストコードが揃ってから導入する
 
 ### 5.4 VRChat SDK と CI の制約
 

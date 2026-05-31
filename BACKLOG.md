@@ -43,6 +43,17 @@
 - [x] **個人ファイル(.local 等)の非追跡** — `opus_startup_prompt.local.md` / `.blueprint-id.local` は gitignore 済・未追跡
 - 備考: 全コミットの author email は GitHub 公開アカウントと同一の通常公開情報、対処不要
 
+## 開発基盤: CI / AI コードレビュー (2026-05-31 導入)
+
+v1.0.0 公開を機に PR ベース運用へ移行し、品質ゲートを整備(詳細 [docs/dev-workflow.md §4–§5](./docs/dev-workflow.md))。VRChat はヘッドレスアップロード非対応のため CD は対象外、CI は衛生チェックに限定。
+
+- [x] **CI ワークフロー** — `.github/workflows/ci.yml`: blueprintId 漏洩ガード + 生成物混入ガード(ブロッキング)、相対リンク切れ検査 + markdownlint(advisory)
+- [x] **Gemini Code Assist** — GitHub App を All repositories でインストール済(追加設定不要、PR 自動レビュー)
+- [x] **Copilot 自動レビューの構成** — `.github/copilot-ruleset.json` + `on: public` ワークフロー(`.github/workflows/setup-on-public.yml`)を用意。Public 化で発火 or 手動 `gh api` で適用
+- [ ] **(ユーザー作業)PR 運用の開始** — 次の変更から `feature/*` → PR で回す(直 main コミットだと AI レビューが発火しない)
+- [ ] **(ユーザー作業・自動化する場合のみ)`RULESET_PAT` secret 登録** — fine-grained PAT (Administration: write)。手動 `gh api` で済ませるなら不要
+- [ ] **(任意・将来)GameCI で EditMode テスト** — ロジック分離(dev-workflow §6.2)が前提、テストコード整備後に判断
+
 ## v1.1 (公開後の最優先課題)
 
 - [ ] **iOS 対応**
