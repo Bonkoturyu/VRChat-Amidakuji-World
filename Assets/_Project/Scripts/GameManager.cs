@@ -114,11 +114,9 @@ public class GameManager : UdonSharpBehaviour
             }
         }
 
-        // UdonSharp は明示キャスト (int)long を Convert.ToInt32 にコンパイルする。これは
-        // チェック付き変換で int 範囲超過時に例外を投げる(通常C#の切り捨てとは異なる)。
-        // DateTime.Now.Ticks は int.MaxValue を遥かに超えるため、下位31ビットをマスクして
-        // [0, int.MaxValue] に収めてから変換する(下位ビットは100ns刻みで変化=実用上ランダム)。
-        seed = useDebugSeed ? debugSeed : (int)(System.DateTime.Now.Ticks & 0x7FFFFFFFL);
+        // Networking.GetServerTimeInMilliseconds() は int を直接返す(周期 ~24.8日)。
+        // キャスト不要でオーバーフロー事故がなく、サーバー同期済み。
+        seed = useDebugSeed ? debugSeed : Networking.GetServerTimeInMilliseconds();
         raceStartTime = Networking.GetServerTimeInSeconds() + startupCountdownSeconds;
         gameState = STATE_RUNNING;
         RequestSerialization();

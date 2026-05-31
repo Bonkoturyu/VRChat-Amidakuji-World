@@ -108,7 +108,7 @@ amidakuji-world/
 - **時刻差の計算は `Networking.CalculateServerDeltaTime()` を使う**(`GetServerTimeInSeconds()` を直接引き算しない、[ADR-0003](./docs/adr/0003-precomputed-waypoint-lerp.md))
 - **VR ユーザーは `disableStationExit = true` でもトリガーで Station 退出可能**(リタイア扱いで設計、[ADR-0007](./docs/adr/0007-vrcstation-transform-cart.md))
 - `System.Random` は SDK 3.7.1 以降で利用可能(自前PRNG実装不要、[ADR-0002](./docs/adr/0002-deterministic-rng-seed-sync.md))
-- **`(int)long` 等の明示縮小キャストは `Convert.ToInt32` にコンパイルされ、範囲超過で実行時例外を投げる**(通常C#の切り捨てとは異なる)。`(int)DateTime.Now.Ticks` は必ずオーバーフローして UdonBehaviour が halt する。下位31ビットマスク `(int)(ticks & 0x7FFFFFFFL)` 等で範囲内に収めてから変換する(v1.0 公開後の START 無反応バグの根本原因、[docs/ui-pitfalls.md](./docs/ui-pitfalls.md) §7)
+- **`(int)long` 等の明示縮小キャストは `Convert.ToInt32` にコンパイルされ、範囲超過で実行時例外を投げる**(通常C#の切り捨てとは異なる)。`(int)DateTime.Now.Ticks` は必ずオーバーフローして UdonBehaviour が halt する。**`int` が必要な時刻値には `Networking.GetServerTimeInMilliseconds()` を使う**(`int` 直接返却、周期 ~24.8日、サーバー同期済み)。やむを得ず long → int 変換する場合は下位31ビットマスク `(int)(ticks & 0x7FFFFFFFL)` 等で範囲内に収めてから変換する(v1.0 公開後の START 無反応バグの根本原因、[docs/ui-pitfalls.md](./docs/ui-pitfalls.md) §7)
 
 ## 関連リソース
 

@@ -272,14 +272,17 @@ An exception occurred during EXTERN to 'SystemConvert.__ToInt32__SystemInt64__Sy
 
 ### 対策
 
-範囲内に収めてから変換する。下位31ビットマスクなら必ず `[0, int.MaxValue]` に収まり、下位ビットは
-100ns 刻みで変化するため seed として実用上ランダム:
+`Networking.GetServerTimeInMilliseconds()` を使う。**最初から `int` を返すため、キャスト自体が不要**。
+周期は約24.8日(2³¹ ms)で seed として十分なエントロピーがある。サーバー同期済みの値であるため
+マルチプレイヤー環境でも適切:
 
 ```csharp
-seed = useDebugSeed ? debugSeed : (int)(System.DateTime.Now.Ticks & 0x7FFFFFFFL);
+seed = useDebugSeed ? debugSeed : Networking.GetServerTimeInMilliseconds();
 ```
 
-→ 修正コミット `ebe490d`。CLAUDE.md「Udon# 制約のリマインダ」にも横展開済。
+初回修正(コミット `ebe490d`)は下位31ビットマスクで回避していたが、周期が約3.5分(2³¹ × 100ns)と
+短く seed 重複リスクがあったため `GetServerTimeInMilliseconds()` に置き換えた。
+CLAUDE.md「Udon# 制約のリマインダ」にも横展開済。
 
 ### 教訓
 
