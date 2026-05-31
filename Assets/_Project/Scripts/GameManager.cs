@@ -55,6 +55,8 @@ public class GameManager : UdonSharpBehaviour
     public float finaleCountdownSeconds = 3.0f;
     [Tooltip("結果表示してから自動で卓をリセット(Cart 起点復帰・着座枠クリア・賞品エリア滞在者を起点へテレポート)するまでの秒数。結果 UI 自体は隠さず次の START まで残す(Phase 8 Option B)")]
     public float resultHoldSeconds = 10.0f;
+    [Tooltip("#14 ソフトロック保険。RUNNING 遷移からこの秒数を過ぎても RESULT_DISPLAY へ進めない場合(未ゴールカート等)、Master が強制的に結果表示へ遷移させ復帰不能を防ぐ。正常レースの最長(~60s 程度)より十分大きく設定すること")]
+    public float raceWatchdogSeconds = 120.0f;
 
     [UdonSynced] public int seed;
     [UdonSynced] public int gameState;
@@ -87,21 +89,22 @@ public class GameManager : UdonSharpBehaviour
     }
 
     // StartButton から呼ばれる。Master 限定。
-    // Phase 8 改修: STATE_RESULT_DISPLAY からも直接 Race 開始可能(STATE_IDLE 経由不要)。
-    // ResultDisplay 永続表示 + 次レース予約(着座)を許容する設計に対応する。
+    // #7/#16: レース開始は STATE_IDLE 限定。RESULT_DISPLAY からの直接開始という近道は採らない
+    // (sticky な seatedPlayerId でゴースト参加者を生むため)。卓のリセットは RESULT_DISPLAY→IDLE
+    // 遷移(_ReturnToIdle)に一本化し、IDLE に戻ってから着座 → START の素直なフローにする。
     public void RequestStart()
     {
         if (!Networking.IsMaster) return;
-        if (gameState == STATE_RUNNING) return;
+        if (gameState != STATE_IDLE) return;
 
         if (!Networking.IsOwner(gameObject))
         {
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
         }
 
-        // STATE_RESULT_DISPLAY 中は Cart.OnDeserialization の Master 集約をスキップしている
-        // ため、participantPlayerIds[] が前レース時点で残っている。各 Cart の現状の
-        // seatedPlayerId からスナップショットを再構築する(Cart Owner の値が正)。
+        // 各 Cart の現状の seatedPlayerId から participantPlayerIds[] を確定する。
+        // IDLE では _RegisterParticipant が逐次維持しているはずだが、取りこぼし対策の再同期
+        // (Cart Owner の seatedPlayerId が正)。
         if (participantPlayerIds != null && carts != null)
         {
             for (int i = 0; i < participantPlayerIds.Length; i++)
@@ -193,6 +196,13 @@ public class GameManager : UdonSharpBehaviour
                     countdownUIs[i]._StartCountdown(raceStartTime, "", false);
                 }
             }
+
+            // #14: フィナーレ watchdog を予約。未ゴールカートで _goaledCount が carts.Length に
+            // 達せず RUNNING のまま固まる(controlPanels 非表示・START 不可で全員操作不能)の保険。
+            // 全クライアントが予約し、発火時に Master だけが実処理する(handler 内 IsMaster ガード)。
+            // 全員予約することで Master 交代後も新 Master 側の予約でカバーされる。
+            SendCustomEventDelayedSeconds(nameof(_ForceFinaleTimeout), raceWatchdogSeconds);
+
             Debug.Log("[GameManager] state=Running seed=" + seed + " raceStart=" + raceStartTime);
         }
         else if (gameState == STATE_IDLE)
@@ -366,6 +376,31 @@ public class GameManager : UdonSharpBehaviour
         if (finaleSharedAudio != null) finaleSharedAudio.Play();
 
         SendCustomEventDelayedSeconds(nameof(_EnterResultDisplay), POST_FINALE_DELAY);
+    }
+
+    // #14: フィナーレ watchdog 本体。RUNNING 遷移時に全クライアントが予約し、発火時に Master だけが
+    // 「まだ RUNNING かつ規定時間を超過」を確認して強制的に RESULT_DISPLAY へ遷移させ、ソフトロックを
+    // 解除する(演出は欠けうるが、gameState を進めて controlPanels/START を復活させるのが目的)。
+    // elapsed をサーバー時刻で再評価するため、別レース由来の stale なコールバックは自動的に再予約され、
+    // 進行中の正レースを誤って打ち切らない(SendCustomEventDelayedSeconds は引数を運べないための設計)。
+    public void _ForceFinaleTimeout()
+    {
+        if (!Networking.IsMaster) return;
+        if (gameState != STATE_RUNNING) return; // 既に正常遷移済 → 何もしない
+
+        double elapsed = Networking.CalculateServerDeltaTime(Networking.GetServerTimeInSeconds(), raceStartTime);
+        if (elapsed < raceWatchdogSeconds)
+        {
+            // まだ規定時間未満(新レース再突入直後の stale コールバック、または開始バッファ分)。
+            // 残り時間で 1 回だけ再予約し、現レースの開始時刻に正しく整合させる。
+            SendCustomEventDelayedSeconds(nameof(_ForceFinaleTimeout), (float)(raceWatchdogSeconds - elapsed) + 1f);
+            return;
+        }
+
+        Debug.LogError("[GameManager] race watchdog 発火 (elapsed=" + elapsed + "s, goaled="
+                       + _goaledCount + "/" + (carts != null ? carts.Length : 0)
+                       + ")。未ゴールカートによるソフトロック回避のため強制的に ResultDisplay へ遷移。");
+        _EnterResultDisplay();
     }
 
     // 賞品エリア(GoalBarrier より奥 = z < PRIZE_AREA_Z_THRESHOLD)に居る LocalPlayer を

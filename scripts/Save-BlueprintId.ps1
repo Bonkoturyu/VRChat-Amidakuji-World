@@ -49,6 +49,15 @@ if (-not $match.Success) {
 $blueprintId = $match.Groups['id'].Value
 Write-Host "Found blueprintId in ${normalizedScene}: $blueprintId"
 
+# #10: 形式検証。捕捉(=クリア対象)の regex はあえて広いまま(wrld_[\w-]+)にする。
+# 厳格 UUID regex で捕捉自体を絞ると、誤編集された不正値を取りこぼして "No blueprintId to
+# save" で素通りし、ID を scene に残したままコミット → 漏洩、という逆方向の事故になる。
+# よってクリアは必ず行い、「捕捉した値が正規の wrld_<UUID> か」を警告でのみ知らせる。
+$canonicalBlueprintId = '^wrld_[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+if ($blueprintId -notmatch $canonicalBlueprintId) {
+    Write-Warning "blueprintId '$blueprintId' は正規の wrld_<UUID> 形式ではありません。scene が誤編集されていないか確認してください(安全のためクリア処理は続行します)。"
+}
+
 # Update .blueprint-id.local (replace existing line for this scene, or append).
 $cachePath = Join-Path $repoRoot '.blueprint-id.local'
 $lines = @()
@@ -79,5 +88,10 @@ Write-Host "Saved to .blueprint-id.local"
 
 # Clear the blueprintId line in the scene file, preserving indent and CRLF.
 $replaced = [regex]::Replace($content, $pattern, '${indent}blueprintId: ')
+# #10: 置換が実際に効いたか検証する。マッチしたのに内容が変わらない場合、ID は未クリアのまま
+# コミットされ漏洩する。非 0 終了(throw + $ErrorActionPreference='Stop')で失敗を顕在化させる。
+if ($replaced -eq $content) {
+    throw "blueprintId のクリアに失敗しました(置換後も scene の内容が変化していません): $normalizedScene"
+}
 [System.IO.File]::WriteAllText($sceneAbs, $replaced, $utf8)
 Write-Host "Cleared blueprintId in $normalizedScene"

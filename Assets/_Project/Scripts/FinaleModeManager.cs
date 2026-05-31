@@ -61,6 +61,14 @@ public class FinaleModeManager : UdonSharpBehaviour
     private void _TryRestoreFinaleMode()
     {
         if (gameManager == null) return;
+        // #13 修正: 手動切替 _ToggleFinaleMode() は IDLE ガード済だが、自動復元の本メソッドには
+        // 無かった。本メソッドは OnPlayerLeft(誰か退出で自分が Master のとき毎回)からも呼ばれ、
+        // これは STATE_RUNNING / RESULT_DISPLAY 中にも発火する。走行中に新 Master の Persistence 値で
+        // simultaneousFinale を反転させると、A/B 分岐(GameManager._NotifyCartGoaled / _FireFinale)が
+        // レース途中で切り替わり演出の二重発火・取りこぼしが起きる。IDLE 限定で復元する。
+        // 注意: 走行中に Master 昇格した場合、この復元は次に誰かが IDLE 中に出入りするまで
+        //       保留される(v1.1 で IDLE 復帰フックを足す候補。Issue #13 参照)。
+        if (gameManager.gameState != GameManager.STATE_IDLE) return;
         var local = Networking.LocalPlayer;
         if (local == null) return;
 
