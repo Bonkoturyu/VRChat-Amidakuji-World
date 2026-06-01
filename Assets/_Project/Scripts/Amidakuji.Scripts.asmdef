@@ -1,0 +1,19 @@
+{
+    "name": "Amidakuji.Scripts",
+    "references": [
+        "UdonSharp.Runtime",
+        "VRC.SDKBase",
+        "VRC.Udon",
+        "VRC.SDK3",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

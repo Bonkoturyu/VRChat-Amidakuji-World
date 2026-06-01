@@ -138,6 +138,11 @@ public class AmidakujiGenerator : UdonSharpBehaviour
         return 0;
     }
 
+    // EditMode テストから状態を検証するためのアクセサ。
+    public bool[] GetBars()        { return _bars; }
+    public float[] GetLaneXArray() { return _laneX; }
+    public float[] GetSegZArray()  { return _segZ; }
+
     public float LaneX(int lane)
     {
         if (lane < 0 || lane >= LANE_COUNT) return 0f;
