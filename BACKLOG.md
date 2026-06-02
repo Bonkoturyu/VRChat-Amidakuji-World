@@ -20,7 +20,7 @@
 - [x] Phase 6: Late Joiner / エッジケース対応 (PC)(2026-05-30 完了。Late Joiner 3状態 / Master 交代(走行中+Idle)/ 全員退出 / 着座中退出 / Player Persistence V9-V11 全 PASS、A=Quest・B=PC 実環境 + Build & Test 併用)
 - [x] Phase 7: Android Platform 切替 + 初期最適化(2026-05-28、Quest 実機 Join + RulesPanel + Cart 着座まで動作確認、Tri 数 Stats と StartButton Proximity は Phase 8 持越し)
 - [x] Phase 8: Quest 実機テスト + 調整(2026-05-30 完了。全シーン 70 FPS / 演出・色・音量・パネル高さ実機 OK / 賞品エリア暗さ対策(Baked Point Light)/ クロスプラットフォーム双方向 / Phase 10 通しテスト A〜F 全 PASS)
-- [ ] Phase 9: ライティング・最終最適化(PC + Android)
+- [x] Phase 9: ライティング・最終最適化(PC + Android)(2026-05-30 完了。Baked GI + Light Probe + Static Batching、Tris 2.7k / Batches 13、Quest 70 FPS)
 - [x] Phase 10: Community Labs 公開(PC + Android 両ビルド)— **2026-05-30 公開達成**(目標 5/31 に対し1日前倒し、tag `v1.0.0`)
 
 ### v1.0 範囲内で追加実装(当初スコープ外、開発中に合流)
@@ -38,7 +38,7 @@
 - [ ] **(任意・低優先)履歴に残る blueprintId 例の扱い** — 旧版 dev-workflow.md の partial prefix は履歴 `11ea836` に残存。world は Community Labs 公開済で blueprintId は実質非秘匿(公開ワールドの URL/API に出る)・partial のみのため **低リスク。履歴 rewrite はコスト過大で非推奨、受容で可**
 - [x] **README.md を公開向けに拡充** — 2026-05-30 完了。タイトルをワールド名化、遊び方 / 公開先(検索誘導、直リンクは blueprintId 含むため任意)/ 技術スタック / リリース状態(v1.0)/ ライセンス(MIT + CC0 音源)を追加。スクショは `docs/images/` 配置のプレースホルダコメントを記載(後で画像を足せる)
 - [x] **.gitignore の Unity 標準除外を最終確認** — 2026-05-30 確認。`git ls-files` で Library/Temp/Logs/obj/.vs/.idea/.csproj/.sln 等の生成物の混入なし(追跡 393 ファイルは全て正当なソース)
-- [ ] **(任意)`.claude/` を公開するか判断** — `.claude/settings.json`(SessionStart フック)と `.claude/agents/sonnet.md`(サブエージェント定義)を追跡中。**秘匿情報なし**(API キー等なし、参照先の `opus_startup_prompt.local.md` は gitignore 済・未追跡)。AI 支援開発の構成を公開して良いかは好み — 隠したいなら `.claude/` を gitignore + `git rm --cached`
+- [x] **(任意)`.claude/` を公開するか判断** — 公開する方針で確定(2026-06-01)。`settings.json` + `agents/sonnet.md` をそのまま追跡・公開。秘匿情報なし、`opus_startup_prompt.local.md` は gitignore 済
 - [x] **第三者素材のライセンス表記** — CC0 音源の出所・ライセンスは [audio-assets.md](./docs/audio-assets.md) + [ADR-0013](./docs/adr/0013-audio-assets-and-licensing.md) に記載済、LICENSE(MIT)あり
 - [x] **個人ファイル(.local 等)の非追跡** — `opus_startup_prompt.local.md` / `.blueprint-id.local` は gitignore 済・未追跡
 - 備考: 全コミットの author email は GitHub 公開アカウントと同一の通常公開情報、対処不要
@@ -50,9 +50,10 @@ v1.0.0 公開を機に PR ベース運用へ移行し、品質ゲートを整備
 - [x] **CI ワークフロー** — `.github/workflows/ci.yml`: blueprintId 漏洩ガード + 生成物混入ガード(ブロッキング)、相対リンク切れ検査 + markdownlint(advisory)
 - [x] **Gemini Code Assist** — GitHub App を All repositories でインストール済(追加設定不要、PR 自動レビュー)
 - [x] **Copilot 自動レビューの構成** — `.github/copilot-ruleset.json` + `on: public` ワークフロー(`.github/workflows/setup-on-public.yml`)を用意。Public 化で発火 or 手動 `gh api` で適用
-- [ ] **(ユーザー作業)PR 運用の開始** — 次の変更から `feature/*` → PR で回す(直 main コミットだと AI レビューが発火しない)
+- [x] **(ユーザー作業)PR 運用の開始** — 2026-05-31 開始済
 - [ ] **(ユーザー作業・自動化する場合のみ)`RULESET_PAT` secret 登録** — fine-grained PAT (Administration: write)。手動 `gh api` で済ませるなら不要
-- [ ] **(任意・将来)GameCI で EditMode テスト** — ロジック分離(dev-workflow §6.2)が前提、テストコード整備後に判断
+- [x] **EditMode テストコード実装** — `AmidakujiGeneratorTests.cs` (EditMode + reflection, 8 テスト全 PASS、2026-06-01)。VRChat SDK の PlayMode Test Runner 干渉を回避するため EditMode + reflection アプローチを採用(`typeof(AmidakujiGenerator).GetMethod("Start", ...).Invoke`)
+- [ ] **(任意)GameCI で EditMode テスト自動化** — テストコード整備済。Unity ライセンス設定が前提、判断は将来
 
 ## v1.1 (公開後の最優先課題)
 

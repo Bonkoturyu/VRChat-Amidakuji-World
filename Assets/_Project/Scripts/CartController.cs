@@ -268,9 +268,6 @@ public class CartController : UdonSharpBehaviour
         }
         float total = _cumulativeDist[n - 1];
         _totalDuration = (speed > 0.0001f) ? (total / speed) : 0f;
-        // #3: Phase 3/4 検証用の逐次ログ(本来 Phase 6 で削除予定)を撤去。
-        // STATE_RUNNING 遷移毎にカート台数分呼ばれ、最大 24 個の座標を文字列連結して
-        // 約 30 個の string を生成していた(Quest で GC プレッシャ)。
     }
 
     // ADR-0007: VRC_Station と UdonBehaviour 同居構成では Use 表示のため Interact() 実装が必要

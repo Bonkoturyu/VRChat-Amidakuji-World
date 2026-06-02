@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
     Restore VRChat blueprintIds from .blueprint-id.local into the corresponding scene files.
