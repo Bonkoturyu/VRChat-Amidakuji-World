@@ -12,9 +12,10 @@ public class GameManagerTests
     {
         _go = new GameObject("TestGameManager");
         _gm = _go.AddComponent<GameManager>();
-        typeof(GameManager)
-            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
-            .Invoke(_gm, null);
+        var startMethod = typeof(GameManager)
+            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.IsNotNull(startMethod, "Start method not found on GameManager");
+        startMethod.Invoke(_gm, null);
     }
 
     [TearDown]

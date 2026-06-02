@@ -15,9 +15,10 @@ public class AmidakujiGeneratorTests
 
         // EditMode では Start() が自動で呼ばれないためリフレクションで実行する。
         // これにより _bars / _laneX / _segZ が本番と同じコードで初期化される。
-        typeof(AmidakujiGenerator)
-            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
-            .Invoke(_gen, null);
+        var startMethod = typeof(AmidakujiGenerator)
+            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.IsNotNull(startMethod, "Start method not found on AmidakujiGenerator");
+        startMethod.Invoke(_gen, null);
     }
 
     [TearDown]
@@ -121,6 +122,7 @@ public class AmidakujiGeneratorTests
     {
         float[] laneX = _gen.GetLaneXArray();
         Assert.AreEqual(_gen.LANE_COUNT, laneX.Length);
+        Assert.GreaterOrEqual(laneX.Length, 2, "laneX must have at least 2 elements to calculate interval");
         float interval = laneX[1] - laneX[0];
         Assert.Greater(interval, 0f);
         for (int i = 2; i < laneX.Length; i++)

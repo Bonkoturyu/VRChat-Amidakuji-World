@@ -14,17 +14,19 @@ public class CartControllerTests
     {
         _genGo = new GameObject("TestGenerator");
         _gen = _genGo.AddComponent<AmidakujiGenerator>();
-        typeof(AmidakujiGenerator)
-            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
-            .Invoke(_gen, null);
+        var genStart = typeof(AmidakujiGenerator)
+            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.IsNotNull(genStart, "Start method not found on AmidakujiGenerator");
+        genStart.Invoke(_gen, null);
 
         _cartGo = new GameObject("TestCart");
         _cart = _cartGo.AddComponent<CartController>();
         _cart.generator = _gen;
         _cart.laneIndex = 0;
-        typeof(CartController)
-            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
-            .Invoke(_cart, null);
+        var cartStart = typeof(CartController)
+            .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.IsNotNull(cartStart, "Start method not found on CartController");
+        cartStart.Invoke(_cart, null);
     }
 
     [TearDown]

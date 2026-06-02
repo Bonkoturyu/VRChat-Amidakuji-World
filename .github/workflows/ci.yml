@@ -88,7 +88,7 @@ jobs:
             echo "Unity で対象マテリアルを開き Enable GPU Instancing にチェックを入れてください。"
             exit 1
           fi
-          echo "OK: 全マテリアルで GPU Instancing が有効です。"
+          echo "OK: _Project/Materials 配下の全マテリアルで GPU Instancing が有効です。"
 
       # Android (Quest) テクスチャ上限は 1024×1024。
       # Textures/ 配下の .meta に maxTextureSize: 2048 以上があれば警告する。

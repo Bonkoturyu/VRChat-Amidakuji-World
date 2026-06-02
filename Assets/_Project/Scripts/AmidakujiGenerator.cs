@@ -138,10 +138,27 @@ public class AmidakujiGenerator : UdonSharpBehaviour
         return 0;
     }
 
-    // EditMode テストから状態を検証するためのアクセサ。
-    public bool[] GetBars()        { return _bars; }
-    public float[] GetLaneXArray() { return _laneX; }
-    public float[] GetSegZArray()  { return _segZ; }
+#if UNITY_EDITOR
+    // EditMode テストから状態を検証するためのアクセサ。本番 Udon ビルドには含めない。
+    public bool[] GetBars()
+    {
+        var c = new bool[_bars.Length];
+        for (int i = 0; i < _bars.Length; i++) c[i] = _bars[i];
+        return c;
+    }
+    public float[] GetLaneXArray()
+    {
+        var c = new float[_laneX.Length];
+        for (int i = 0; i < _laneX.Length; i++) c[i] = _laneX[i];
+        return c;
+    }
+    public float[] GetSegZArray()
+    {
+        var c = new float[_segZ.Length];
+        for (int i = 0; i < _segZ.Length; i++) c[i] = _segZ[i];
+        return c;
+    }
+#endif
 
     public float LaneX(int lane)
     {
