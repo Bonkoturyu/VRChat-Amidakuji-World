@@ -37,8 +37,8 @@ if (-not (Test-Path -LiteralPath $sceneAbs)) {
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $content = [System.IO.File]::ReadAllText($sceneAbs, $utf8)
 
-# Capture indent and id. Use [ \t]* (not \s*) so that the CRLF at end-of-line is preserved.
-$pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<id>wrld_[\w-]+)[ \t]*$'
+# Capture indent and id. Use [ \t]* (not \s*) so that CRLF is preserved. \r? handles CRLF scene files.
+$pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<id>wrld_[\w-]+)[ \t]*\r?$'
 $match = [regex]::Match($content, $pattern)
 
 if (-not $match.Success) {

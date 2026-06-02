@@ -56,8 +56,8 @@ foreach ($rawLine in $lines) {
 
     $content = [System.IO.File]::ReadAllText($sceneAbs, $utf8)
 
-    # Match both empty and populated blueprintId lines.
-    $pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<existing>\S*)[ \t]*$'
+    # Match both empty and populated blueprintId lines. \r? handles CRLF scene files.
+    $pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<existing>\S*)[ \t]*\r?$'
     $match = [regex]::Match($content, $pattern)
     if (-not $match.Success) {
         Write-Warning "No blueprintId field found in $sceneRel"
