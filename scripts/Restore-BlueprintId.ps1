@@ -57,7 +57,8 @@ foreach ($rawLine in $lines) {
     $content = [System.IO.File]::ReadAllText($sceneAbs, $utf8)
 
     # Match both empty and populated blueprintId lines.
-    $pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<existing>\S*)[ \t]*$'
+    # (?=\r?$) lookahead matches CRLF line endings without consuming \r, keeping line endings intact on Replace.
+    $pattern = '(?m)^(?<indent>[ \t]*)blueprintId:[ \t]*(?<existing>\S*)[ \t]*(?=\r?$)'
     $match = [regex]::Match($content, $pattern)
     if (-not $match.Success) {
         Write-Warning "No blueprintId field found in $sceneRel"
