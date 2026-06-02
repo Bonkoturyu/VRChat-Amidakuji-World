@@ -10300,6 +10300,7 @@ MonoBehaviour:
   simultaneousFinale: 1
   finaleCountdownSeconds: 3
   resultHoldSeconds: 10
+  raceWatchdogSeconds: 120
   seed: 0
   gameState: 0
   raceStartTime: 0

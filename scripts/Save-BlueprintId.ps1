@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
     Save the VRChat blueprintId from a scene file into a local cache (.blueprint-id.local),

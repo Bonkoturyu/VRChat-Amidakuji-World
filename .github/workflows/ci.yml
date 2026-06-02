@@ -68,3 +68,41 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes markdownlint-cli2 "**/*.md"
+
+  asset-quality:
+    name: Asset quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # CLAUDE.md の Android 対応制約: 「GPU Instancing: 全マテリアルで有効化必須」
+      # m_EnableInstancingVariants: 1 がないマテリアルを検出してブロックする。
+      - name: GPU Instancing enabled on all materials
+        run: |
+          set -euo pipefail
+          BAD="$(git ls-files 'Assets/_Project/Materials/*.mat' \
+            | xargs grep -L 'm_EnableInstancingVariants: 1' 2>/dev/null || true)"
+          if [ -n "$BAD" ]; then
+            echo "::error::GPU Instancing が無効なマテリアルが存在します (Quest 必須):"
+            echo "$BAD"
+            echo "Unity で対象マテリアルを開き Enable GPU Instancing にチェックを入れてください。"
+            exit 1
+          fi
+          echo "OK: 全マテリアルで GPU Instancing が有効です。"
+
+      # Android (Quest) テクスチャ上限は 1024×1024。
+      # Textures/ 配下の .meta に maxTextureSize: 2048 以上があれば警告する。
+      # platform override (Android) で 1024 に下げている場合も flagging するため advisory とし、
+      # 意図的な設定はコメントで確認済みマークを付けること。
+      - name: Texture size guard (Quest ≤ 1024) (advisory)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BAD="$(git ls-files 'Assets/_Project/Textures/*.meta' \
+            | xargs grep -lE 'maxTextureSize: (2048|4096|8192|16384)' 2>/dev/null || true)"
+          if [ -n "$BAD" ]; then
+            echo "::warning::1024 超の maxTextureSize が設定されたテクスチャ (Android override で 1024 以下を確認):"
+            echo "$BAD"
+          else
+            echo "OK: テクスチャサイズ上限の問題なし (または Textures/ ディレクトリが未作成)。"
+          fi
