@@ -401,7 +401,6 @@ public class GameManager : UdonSharpBehaviour
         _EnterResultDisplay();
     }
 
-
     // 賞品エリア(GoalBarrier より奥 = z < PRIZE_AREA_Z_THRESHOLD)に居る LocalPlayer を
     // defaultSpawn へ戻す。各クライアントが自分自身を判定・移動(VRC TeleportTo Local 制約回避)。
     // 観戦エリア(MainFloor 上)のプレイヤーには影響しない。RUNNING 開始時 / IDLE リセット時に使用。
@@ -446,20 +445,10 @@ public class GameManager : UdonSharpBehaviour
         {
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
         }
-        // 参加者配列リセット後、まだカートに着座中のプレイヤーを再登録。
-        // watchdog 発火でレース中途に IDLE 復帰した場合、着座者が再登録されないと
-        // START ボタンが disabled のままになる(通常フローではゴール後に全員離席済のため影響なし)。
+        // 参加者配列リセット(次ラウンド向け)
         if (participantPlayerIds != null)
         {
             for (int i = 0; i < participantPlayerIds.Length; i++) participantPlayerIds[i] = -1;
-            if (carts != null)
-            {
-                for (int i = 0; i < participantPlayerIds.Length; i++)
-                {
-                    int sid = (i < carts.Length && carts[i] != null) ? carts[i].seatedPlayerId : -1;
-                    if (sid != -1) participantPlayerIds[i] = sid;
-                }
-            }
         }
         gameState = STATE_IDLE;
         RequestSerialization();
