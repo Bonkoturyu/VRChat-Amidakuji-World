@@ -306,7 +306,7 @@ MonoBehaviour:
       Data: 18|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: GameManager, Assembly-CSharp
+      Data: GameManager, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -375,7 +375,7 @@ MonoBehaviour:
       Data: 23|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: AmidakujiGenerator, Assembly-CSharp
+      Data: AmidakujiGenerator, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -429,7 +429,7 @@ MonoBehaviour:
       Data: 26|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: ColorPreferenceManager, Assembly-CSharp
+      Data: ColorPreferenceManager, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 

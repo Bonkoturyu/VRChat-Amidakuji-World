@@ -62,7 +62,7 @@ MonoBehaviour:
       Data: 3|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: FinaleModeManager, Assembly-CSharp
+      Data: FinaleModeManager, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -131,7 +131,7 @@ MonoBehaviour:
       Data: 8|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: GameManager, Assembly-CSharp
+      Data: GameManager, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 

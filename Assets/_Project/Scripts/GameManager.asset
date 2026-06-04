@@ -62,7 +62,7 @@ MonoBehaviour:
       Data: 3|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: AmidakujiGenerator, Assembly-CSharp
+      Data: AmidakujiGenerator, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -131,7 +131,7 @@ MonoBehaviour:
       Data: 8|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: CartController[], Assembly-CSharp
+      Data: CartController[], Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -191,7 +191,7 @@ MonoBehaviour:
       Data: 12|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: PrizeArea[], Assembly-CSharp
+      Data: PrizeArea[], Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -299,7 +299,7 @@ MonoBehaviour:
       Data: 18|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: CountdownUI[], Assembly-CSharp
+      Data: CountdownUI[], Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -364,7 +364,7 @@ MonoBehaviour:
       Data: 22|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: ResultDisplayUI, Assembly-CSharp
+      Data: ResultDisplayUI, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
