@@ -125,7 +125,7 @@ MonoBehaviour:
       Data: 7|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: CartController[], Assembly-CSharp
+      Data: CartController[], Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -203,7 +203,7 @@ MonoBehaviour:
       Data: 13|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: RulesPanelController, Assembly-CSharp
+      Data: RulesPanelController, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 

@@ -62,7 +62,7 @@ MonoBehaviour:
       Data: 3|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: RulesPanelController, Assembly-CSharp
+      Data: RulesPanelController, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 
@@ -141,7 +141,7 @@ MonoBehaviour:
       Data: 9|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: ResultDisplayUI, Assembly-CSharp
+      Data: ResultDisplayUI, Amidakuji.Scripts
     - Name: 
       Entry: 8
       Data: 

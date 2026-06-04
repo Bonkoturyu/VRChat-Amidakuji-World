@@ -139,9 +139,15 @@ public class CartController : UdonSharpBehaviour
         // ゴール退出後も Cart Owner は退出者のまま保持され、ここまで来る。
         // _FireFinale が participantPlayerIds[] を参照して動くため、リセットは
         // ResultDisplay → Idle 遷移時 (本メソッド呼出時) まで遅延させる。
+        // watchdog サバイバー(_isLocalSeated=true) は seatedPlayerId を保持したまま
+        // 再シリアライズ → Master の OnDeserialization → _RegisterParticipant で再登録。
         if (Networking.IsOwner(gameObject))
         {
-            if (seatedPlayerId != -1 || colorIndex != -1)
+            if (_isLocalSeated)
+            {
+                RequestSerialization();
+            }
+            else if (seatedPlayerId != -1 || colorIndex != -1)
             {
                 seatedPlayerId = -1;
                 colorIndex = -1;
