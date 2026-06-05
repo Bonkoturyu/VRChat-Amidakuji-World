@@ -22,6 +22,8 @@
 - [x] Phase 8: Quest 実機テスト + 調整(2026-05-30 完了。全シーン 70 FPS / 演出・色・音量・パネル高さ実機 OK / 賞品エリア暗さ対策(Baked Point Light)/ クロスプラットフォーム双方向 / Phase 10 通しテスト A〜F 全 PASS)
 - [x] Phase 9: ライティング・最終最適化(PC + Android)(2026-05-30 完了。Baked GI + Light Probe + Static Batching、Tris 2.7k / Batches 13、Quest 70 FPS)
 - [x] Phase 10: Community Labs 公開(PC + Android 両ビルド)— **2026-05-30 公開達成**(目標 5/31 に対し1日前倒し、tag `v1.0.0`)
+- [x] iOS Build Support 追加 + iOS 対応 Community Labs 公開(2026-06-04)
+- [x] Community Labs 突破 → **VRChat Public 昇格**(2026-06-04)
 
 ### v1.0 範囲内で追加実装(当初スコープ外、開発中に合流)
 
@@ -57,10 +59,7 @@ v1.0.0 公開を機に PR ベース運用へ移行し、品質ゲートを整備
 
 ## v1.1 (公開後の最優先課題)
 
-- [ ] **iOS 対応**
-  - VRChat の Android フォールバックでの実体験を確認
-  - 必要なら iOS 専用ビルドを追加
-  - iOS 実機(or Mac + iPhone借りるなど)が必要
+- [x] **iOS 対応** — iOS Build Support を追加し v1.0 で対応済み。Community Labs 突破後 Public 公開済み(2026-06-04)
 - [ ] **20人スケール対応**
   - 縦線本数の可変化(プレハブ複製、シーン配置調整)
   - participantPlayerIds[] のサイズ拡大とSync制限再検証

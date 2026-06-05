@@ -1,11 +1,10 @@
 # 巨大あみだくじ / Ghost-Leg Express
 
-巨大あみだくじをテーマにした VRChat ワールド (PC + Android/Quest クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。非参加者はあみだくじ構造内を自由に走り回り、カートを追いかけて間近で観戦できる。
+巨大あみだくじをテーマにした VRChat ワールド (PC + Quest + iOS クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。非参加者はあみだくじ構造内を自由に走り回り、カートを追いかけて間近で観戦できる。
 
-> **Status:** v1.0 公開済 (VRChat Community Labs) — PC + Quest 対応
-> **Engine:** Unity 2022.3 LTS / VRChat World SDK 3.x / UdonSharp
+> **Status:** v1.0 公開済 (VRChat Public) — PC + Quest + iOS 対応
 
-*A giant Ghost-Leg (Amidakuji) lottery world for VRChat. Ride an auto-traveling cart through a procedurally generated path; at the goal, confetti (win) or an explosion (miss) fires at random. Spectators run freely across the board and chase the carts up close. PC + Quest, JP/EN UI.*
+*A giant Ghost-Leg (Amidakuji) lottery world for VRChat. Ride an auto-traveling cart through a procedurally generated path; at the goal, confetti (win) or an explosion (miss) fires at random. Spectators run freely across the board and chase the carts up close. PC + Quest + iOS, JP/EN UI.*
 
 <!-- スクリーンショット/サムネを載せる場合は docs/images/ などに配置してここで参照 -->
 
@@ -23,7 +22,12 @@ VRChat の **Community Labs** で公開中。ワールド名 **「巨大あみ�
 
 ## 技術スタック / Tech stack
 
-Unity 2022.3 LTS ・ VRChat World SDK 3.x ・ UdonSharp ・ ClientSim ・ Android (Quest) Build Support
+- Unity 2022.3 LTS
+- VRChat World SDK 3.x (動作確認済: 3.10.3)
+- UdonSharp
+- ClientSim (ローカルテスト用)
+- Android Build Support (Quest 2/3/3S)
+- iOS Build Support
 
 ## ドキュメント
 

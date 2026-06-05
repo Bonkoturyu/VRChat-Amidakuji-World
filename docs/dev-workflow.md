@@ -353,11 +353,13 @@ PC 版と Android 版は **同じ Blueprint ID** で紐づける必要がある�
 
 SDK の Builder タブで「Windows と Android を同時選択 → Build」も可能ではあるが、**SDK 3.7.6 で無限ループになるバグが報告されている**。安定するまでは 1 プラットフォームずつアップロードする方が安全。
 
-### 10.7 iOS 非対応の方針
+### 10.7 iOS 対応
 
-v1.0 では iOS ビルドは作らない([ADR-0010](./adr/0010-android-in-v1.0-scope.md))。
+iOS Build Support を追加し、PC + Android + iOS の 3 プラットフォームで公開済み(2026-06-04 Public 昇格)。
 
-VRChat には実験的な「iOS で Android ビルドを読む」フォールバック機能があり、これに頼って iOS ユーザーが入れる可能性は許容するが、保証はしない。v1.1 で iOS 実機テスト体制が整ってから対応する。
+同じ Blueprint ID で 3 プラットフォームを紐づける。iOS ビルドのアップロード手順は Android と同様で、Unity の Platform を iOS に切り替えて Build & Publish するだけでよい。
+
+当初 v1.0 では iOS を対象外としていた経緯は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) を参照。
 
 ## 11. Blueprint ID の保護ワークフロー
 
