@@ -243,13 +243,12 @@ Android向け最適化制約は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) 
 
 - **Windows (PC)**: 対応 ✓
 - **Android (Quest 2/3/3S)**: 対応 ✓
-- **iOS**: v1.0 では非対応。VRChat の Android フォールバックで遊べる可能性は許容するが保証外。iOS 専用ビルドは v1.1 で検討
+- **iOS**: 対応 ✓ (iOS Build Support、2026-06-04 Public 公開済み)
 
-判断は [ADR-0010](./adr/0010-android-in-v1.0-scope.md)。
+判断経緯は [ADR-0010](./adr/0010-android-in-v1.0-scope.md)。
 
 ## 12. 非対応事項 (v1.0)
 
-- iOS専用ビルド(v1.1へ)
 - 20人スケール(v1.1へ)
 - ランダムイベント(ボーナス・トラップ等)
 - 動的BGM切替・ゴールファンファーレ・カウントダウン専用ジングル(v1.1へ。単一ループBGM + ゴール効果音は v1.0 で実装 → [ADR-0013](./adr/0013-audio-assets-and-licensing.md) / [audio-assets.md](./audio-assets.md))
@@ -263,7 +262,7 @@ Android向け最適化制約は [ADR-0010](./adr/0010-android-in-v1.0-scope.md) 
 
 以下を全て満たした状態を「v1.0完了」とする:
 
-1. PC + Android 両ビルドが同じ Blueprint ID で公開可能
+1. PC + Android + iOS 全ビルドが同じ Blueprint ID で公開可能
 2. 4人参加でランダムあみだくじが生成され、全カートが正しく経路を辿りゴールする
 3. ゴール後に各参加者が対応する賞品エリアへテレポートされ、seed 由来でランダム配置された爆発・紙吹雪演出が発火する(§8.3)
 4. 非参加者はあみだくじ構造を自由に歩行でき、カートを追いかけられる

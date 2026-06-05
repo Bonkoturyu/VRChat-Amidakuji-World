@@ -1,12 +1,12 @@
 # Amidakuji World - VRChat World Project
 
-巨大あみだくじをテーマにしたVRChatワールド (PC + Android クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。**ワールドは平面水平レイアウト**(地面にあみだくじが描かれた状態、段差なし、[ADR-0011](./docs/adr/0011-flat-horizontal-layout.md))。非参加者は同じ床面を自由に走り回り、カートを追いかけて間近で観戦できる。
+巨大あみだくじをテーマにしたVRChatワールド (PC + Quest + iOS クロスプラットフォーム対応)。プレイヤーはカートに乗ってランダム生成されたあみだくじを自動巡回し、ゴールの賞品エリアにテレポートする。**ワールドは平面水平レイアウト**(地面にあみだくじが描かれた状態、段差なし、[ADR-0011](./docs/adr/0011-flat-horizontal-layout.md))。非参加者は同じ床面を自由に走り回り、カートを追いかけて間近で観戦できる。
 
 ## 現在のステータス
 
-- **目標**: 2026-05-31 までに Community Labs 公開
-- **バージョン**: v1.0 (MVP) 開発中
-- **対応プラットフォーム**: Windows (PC) + Android (Quest 2/3/3S)
+- **ステータス**: v1.0 公開済 (VRChat Public、2026-06-04 Community Labs 突破)
+- **バージョン**: v1.0
+- **対応プラットフォーム**: Windows (PC) + Android (Quest 2/3/3S) + iOS
 - **担当**: 個人開発
 
 詳細仕様は [docs/SPEC.md](./docs/SPEC.md)、進捗は [BACKLOG.md](./BACKLOG.md) / [docs/tasklist.md](./docs/tasklist.md) を参照。
@@ -19,6 +19,7 @@
 - UdonSharp (U#)
 - ClientSim (ローカルテスト用)
 - Android Build Support (Quest対応のため)
+- iOS Build Support
 - Visual Studio 2022 / Rider (任意)
 
 ## ディレクトリ構造
@@ -125,4 +126,4 @@ amidakuji-world/
 - **Late Joiner**: 走行中などに後から参加してきたプレイヤー
 - **Trust Rank**: VRChatのユーザー信頼度。Community Labs 公開には User 以上が必要
 - **VCC**: VRChat Creator Companion(プロジェクト・SDK管理ツール)
-- **Blueprint ID**: VRChatワールドの一意識別子。PC版とAndroid版は同じBlueprint IDで紐づける
+- **Blueprint ID**: VRChatワールドの一意識別子。PC版・Android版・iOS版は同じBlueprint IDで紐づける

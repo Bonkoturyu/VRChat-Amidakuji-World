@@ -77,13 +77,12 @@ iOS は v1.0 から外す。理由:
 
 旧 Phase 5(RenderTexture)・旧 Phase 6(観戦デッキ)が消えた分の2日を、Android 対応に充当することで全体は変わらず。
 
-### iOS について(v1.1で検討)
+### iOS について(後日対応済み)
 
-- VRChat iOS は実験的に Android ビルドをフォールバックとして読み込む挙動がある
-- v1.0 公開後、iOS ユーザーが Android ビルドで遊べているか観察
-- 問題なく動くなら iOS 専用ビルドは不要、問題あれば v1.1 で対応
+当初の iOS フォールバック運用観察を経て、iOS Build Support を追加し正式対応済み(2026-06-04 Public 公開)。
 
 ## 改訂履歴
 
 - 2026-05-15: 制定(BACKLOG の v1.2 → v1.0 への移行を正式化)
 - 2026-05-16: ベースシェーダーを `Mobile/VRChat/Lightmapped` → `VRChat/Mobile/Standard Lite` に変更(前者は `_Color` と GPU Instancing 対応なし。詳細は [material-set.md](../material-set.md) §2.1)
+- 2026-06-04: iOS Build Support を追加し PC + Android + iOS の 3 プラットフォームで Public 公開。本 ADR の iOS 除外決定は「当初スコープ」の記録として保持
