@@ -37,7 +37,7 @@
 
 - [x] **シーンの blueprintId 退避** — 全コミットがクリーン。シーンの実 blueprintId は履歴に一度も入っていない(`git log --all -S wrld_` で検証、ヒットは下記 dev-workflow.md の例とスクリプト正規表現のみ)
 - [x] **dev-workflow.md §11 の blueprintId 例を redact** — 実 ID prefix `wrld_13f1b8a9-...` をプレースホルダ `wrld_xxxx...` に変更(2026-05-30)
-- [ ] **(任意・低優先)履歴に残る blueprintId 例の扱い** — 旧版 dev-workflow.md の partial prefix は履歴 `11ea836` に残存。world は Community Labs 公開済で blueprintId は実質非秘匿(公開ワールドの URL/API に出る)・partial のみのため **低リスク。履歴 rewrite はコスト過大で非推奨、受容で可**
+- [ ] **(任意・低優先)履歴に残る blueprintId 例の扱い** — 旧版 dev-workflow.md の partial prefix は履歴 `11ea836` に残存。ワールドは Public 公開済で blueprintId は実質非秘匿(公開ワールドの URL/API に出る)・partial のみのため **低リスク。履歴 rewrite はコスト過大で非推奨、受容で可**
 - [x] **README.md を公開向けに拡充** — 2026-05-30 完了。タイトルをワールド名化、遊び方 / 公開先(検索誘導、直リンクは blueprintId 含むため任意)/ 技術スタック / リリース状態(v1.0)/ ライセンス(MIT + CC0 音源)を追加。スクショは `docs/images/` 配置のプレースホルダコメントを記載(後で画像を足せる)
 - [x] **.gitignore の Unity 標準除外を最終確認** — 2026-05-30 確認。`git ls-files` で Library/Temp/Logs/obj/.vs/.idea/.csproj/.sln 等の生成物の混入なし(追跡 393 ファイルは全て正当なソース)
 - [x] **(任意)`.claude/` を公開するか判断** — 公開する方針で確定(2026-06-01)。`settings.json` + `agents/sonnet.md` をそのまま追跡・公開。秘匿情報なし、`opus_startup_prompt.local.md` は gitignore 済
