@@ -16,7 +16,7 @@
 
 ## 公開先 / Play it
 
-VRChat の **Community Labs** で公開中。ワールド名 **「巨大あみだくじ / Ghost-Leg Express」** で検索。
+VRChat で **Public 公開中**。ワールド名 **「巨大あみだくじ / Ghost-Leg Express」** で検索。
 
 <!-- 直リンクを載せる場合は VRChat ワールド URL をここに記載 (URL に blueprintId が含まれる点に留意) -->
 
